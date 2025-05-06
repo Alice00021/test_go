@@ -52,7 +52,10 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
             c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги"  +result.Error.Error()})
             return
         }
-
+        if err :=db.Preload("Author").First(&book, book.ID).Error; err!=nil{
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора: " + err.Error()})
+            return
+        }
         c.JSON(http.StatusOK, gin.H{"book":book})
     }
 }
@@ -117,5 +120,10 @@ func BookUpdate(db *gorm.DB) gin.HandlerFunc {
     }
 }
 
+func AuthorDelete(db *gorm.DB) gin.HandlerFunc{
+    return  func(c * gin.Context){
+        
+    }
 
+}
 
