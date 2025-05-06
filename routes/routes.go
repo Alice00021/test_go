@@ -8,8 +8,13 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine, db *gorm.DB) {
+
     api := router.Group("/api")
     {
         api.POST("/authors", controllers.AuthorsCreate(db))
+        api.POST("/books", controllers.BookCreate(db))
+        api.PUT("/authors/:id", controllers.AuthorUpdate(db))
+        api.PUT("/books/:id", controllers.BookUpdate(db))
     }
 }
+

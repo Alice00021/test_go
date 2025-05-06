@@ -1,11 +1,12 @@
 package controllers
 
 import (
-    "net/http"
+	"net/http"
 
-    "test_go/models"
-    "github.com/gin-gonic/gin"
-    "gorm.io/gorm"
+	"test_go/models"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
@@ -32,10 +33,11 @@ func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
     }
 }
 
-/* func BookCreate(db *gorm.DB) gin.HandlerFunc {
+func BookCreate(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
         var body struct {
 			Title      string   `json:"title" binding:"required"`
+            AuthorID   uint     `json:"authorID" binding:"required"`
         }
 
         if err := c.ShouldBindJSON(&body); err != nil {
@@ -43,14 +45,77 @@ func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        book := models.Author{Name: body.Title}
+        book := models.Book{Title:body.Title, AuthorID: body.AuthorID}
         result := db.Create(&book)
 
         if result.Error != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания автора: " + result.Error.Error()})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги"  +result.Error.Error()})
             return
         }
 
-        c.JSON(http.StatusOK, gin.H{"author": book})
+        c.JSON(http.StatusOK, gin.H{"book":book})
     }
-} */
+}
+
+func AuthorUpdate(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        
+        var body struct {
+            Name   string `json:"name" binding:"required"`
+            Female bool   `json:"female"`
+        }
+
+        if err := c.ShouldBindJSON(&body); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
+            return
+        }
+        var author models.Author
+        if err := db.Where("id = ?", c.Param("id")).First(&author).Error; err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+            return
+        }
+
+        author.Name = body.Name
+        author.Female = body.Female
+
+       if err := db.Save(&author).Error; err !=nil{
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления автора: " + err.Error()})
+            return
+       }
+
+        c.JSON(http.StatusOK, gin.H{"update_author": author})
+    }
+}
+
+func BookUpdate(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        
+        var body struct {
+            Title  string `json:"title" binding:"required"`
+            AuthorID uint  `json:"authorID" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&body); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
+            return
+        }
+        var book models.Book
+        if err := db.Where("id = ?", c.Param("id")).First(&book).Error; err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+            return
+        }
+
+        book.Title = body.Title
+        book.AuthorID = body.AuthorID
+
+       if err := db.Save(&book).Error; err !=nil{
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления книги: " + err.Error()})
+            return
+       }
+
+        c.JSON(http.StatusOK, gin.H{"update_book": book})
+    }
+}
+
+
+
