@@ -21,7 +21,7 @@ func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
         if errors.Is(err, gorm.ErrRecordNotFound) {
             return fmt.Errorf("автор с ID %d не найден", b.AuthorID)
         }
-        return fmt.Errorf("ошибка проверки автора: %w", err)
+        return fmt.Errorf("ошибка проверки Книги: %w", err)
     }
     return nil
 }
