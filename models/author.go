@@ -10,7 +10,7 @@ import (
 type Author struct {
     gorm.Model
     Name     string
-	Female 	 bool  
+	Gender 	 bool  
     Books    []Book    
 }
 

@@ -21,10 +21,14 @@ func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
         if errors.Is(err, gorm.ErrRecordNotFound) {
             return fmt.Errorf("автор с ID %d не найден", b.AuthorID)
         }
-        return fmt.Errorf("ошибка проверки Книги: %w", err)
+        return fmt.Errorf("ошибка проверки Книги: %w", err) 
+    }
+    var book_exist Book
+    if err := tx.Where("title = ?", b.Title).First(&book_exist).Error; err == nil {
+        return fmt.Errorf("книга с таким названием '%s' уже существует", b.Title)
     }
     return nil
 }
 
-/* Уникальное название книги */
+
 

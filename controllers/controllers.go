@@ -7,13 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
 )
 
 func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
         var body struct {
             Name   string `json:"name" binding:"required"`
-            Female bool   `json:"female"`
+            Gender bool   `json:"gender"`
         }
 
         if err := c.ShouldBindJSON(&body); err != nil {
@@ -21,7 +22,7 @@ func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        author := models.Author{Name: body.Name, Female: body.Female}
+        author := models.Author{Name: body.Name, Gender: body.Gender}
         result := db.Create(&author)
 
         if result.Error != nil {
@@ -49,7 +50,7 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
         result := db.Create(&book)
 
         if result.Error != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги"  +result.Error.Error()})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги, "  +result.Error.Error()})
             return
         }
         if err :=db.Preload("Author").First(&book, book.ID).Error; err!=nil{
@@ -60,44 +61,13 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
     }
 }
 
-/* func BookCreate(db *gorm.DB) gin.HandlerFunc {
-    return func(c *gin.Context) {
 
-        var body struct {
-			Title      string   `json:"title" binding:"required"`
-            AuthorID   uint     `json:"authorID" binding:"required"`
-        }
-
-        if err := c.ShouldBindJSON(&body); err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
-            return
-        }
-        book := models.Book{Title:body.Title, AuthorID: body.AuthorID}
-
-        err:=db.Transaction(func(tx *gorm.DB) error{
-            if err := tx.Create(&book).Error; err!=nil{
-                return err
-            }
-            if err :=tx.Preload("Author").First(&book, book.ID).Error; err!=nil{
-                return err
-            }
-            return nil
-        })
-    
-        if err!= nil{
-            c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        }
-        
-        c.JSON(http.StatusOK, gin.H{"book":book})
-    }
-}
- */
 func AuthorUpdate(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
         
         var body struct {
             Name   string `json:"name" binding:"required"`
-            Female bool   `json:"female"`
+            Gender bool   `json:"gender"`
         }
 
         if err := c.ShouldBindJSON(&body); err != nil {
@@ -111,7 +81,7 @@ func AuthorUpdate(db *gorm.DB) gin.HandlerFunc {
         }
 
         author.Name = body.Name
-        author.Female = body.Female
+        author.Gender = body.Gender
 
        if err := db.Save(&author).Error; err !=nil{
         c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления автора: " + err.Error()})

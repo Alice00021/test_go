@@ -5,6 +5,8 @@ import (
     "test_go/config"
     "test_go/models"
     "test_go/routes"
+    "test_go/migrations"
+
     "github.com/gin-gonic/gin"
 )
 
@@ -19,11 +21,14 @@ func main() {
         log.Fatalf("Ошибка инициализации базы данных: %v", err)
     }
 
-    // Автомиграция для создания таблиц
+    /* // Автомиграция для создания таблиц
     if err := db.AutoMigrate(&models.Author{}); err != nil {
         log.Fatalf("Ошибка миграции базы данных: %v", err)
     }
-
+ */
+    if err := migrations.RunMigrations(db); err != nil {
+		panic("migration failed: " + err.Error())
+	}
 
     router := gin.Default()
 
