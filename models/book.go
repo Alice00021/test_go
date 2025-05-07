@@ -25,3 +25,6 @@ func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
     }
     return nil
 }
+
+/* Уникальное название книги */
+

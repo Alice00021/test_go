@@ -49,19 +49,49 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
         result := db.Create(&book)
 
         if result.Error != nil {
-            c.JSON(http.StatusBadRequest, gin.H{
-                "error": result.Error.Error(),
-            })
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги"  +result.Error.Error()})
             return
         }
         if err :=db.Preload("Author").First(&book, book.ID).Error; err!=nil{
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора:  " + err.Error()})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора: " + err.Error()})
             return
         }
         c.JSON(http.StatusOK, gin.H{"book":book})
     }
 }
 
+/* func BookCreate(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+
+        var body struct {
+			Title      string   `json:"title" binding:"required"`
+            AuthorID   uint     `json:"authorID" binding:"required"`
+        }
+
+        if err := c.ShouldBindJSON(&body); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
+            return
+        }
+        book := models.Book{Title:body.Title, AuthorID: body.AuthorID}
+
+        err:=db.Transaction(func(tx *gorm.DB) error{
+            if err := tx.Create(&book).Error; err!=nil{
+                return err
+            }
+            if err :=tx.Preload("Author").First(&book, book.ID).Error; err!=nil{
+                return err
+            }
+            return nil
+        })
+    
+        if err!= nil{
+            c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        }
+        
+        c.JSON(http.StatusOK, gin.H{"book":book})
+    }
+}
+ */
 func AuthorUpdate(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
         
@@ -105,18 +135,23 @@ func BookUpdate(db *gorm.DB) gin.HandlerFunc {
             return
         }
         var book models.Book
-        if err := db.Where("id = ?", c.Param("id")).First(&book).Error; err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+        err := db.Transaction(func(tx *gorm.DB) error{
+            if err := db.Where("id = ?", c.Param("id")).First(&book).Error; err != nil {
+                return err
+            }
+            book.Title = body.Title
+            book.AuthorID = body.AuthorID
+    
+           if err := db.Save(&book).Error; err !=nil{
+                return err
+           }
+            return nil
+        })
+
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления книги: " + err.Error()})
             return
         }
-
-        book.Title = body.Title
-        book.AuthorID = body.AuthorID
-
-       if err := db.Save(&book).Error; err !=nil{
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления книги: " + err.Error()})
-            return
-       }
 
         c.JSON(http.StatusOK, gin.H{"update_book": book})
     }
