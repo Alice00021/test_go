@@ -30,7 +30,7 @@ func AuthorsCreate(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        c.JSON(http.StatusOK, gin.H{"author": author})
+        c.JSON(http.StatusCreated, gin.H{"author": author})
     }
 }
 
@@ -57,7 +57,7 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
             c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора: " + err.Error()})
             return
         }
-        c.JSON(http.StatusOK, gin.H{"book":book})
+        c.JSON(http.StatusCreated, gin.H{"book":book})
     }
 }
 
@@ -76,7 +76,7 @@ func AuthorUpdate(db *gorm.DB) gin.HandlerFunc {
         }
         var author models.Author
         if err := db.Where("id = ?", c.Param("id")).First(&author).Error; err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+            c.JSON(http.StatusNotFound, gin.H{"error": "Запись не найдена!"})
             return
         }
 
@@ -218,7 +218,7 @@ func GetOneBook(db *gorm.DB) gin.HandlerFunc{
     var book models.Book
 
     if err := db.Where("id = ?", c.Param("id")).First(&book).Error; err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+    c.JSON(http.StatusNotFound, gin.H{"error": "Запись не найдена!"})
     return
   }
 
@@ -232,7 +232,7 @@ func GetOneAuthor(db *gorm.DB) gin.HandlerFunc{
     var author models.Author
 
     if err := db.Where("id = ?", c.Param("id")).First(&author).Error; err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+    c.JSON(http.StatusNotFound, gin.H{"error": "Запись не найдена!"})
     return
   }
 
