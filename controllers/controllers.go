@@ -129,30 +129,115 @@ func BookUpdate(db *gorm.DB) gin.HandlerFunc {
 
 func AuthorDelete(db *gorm.DB) gin.HandlerFunc{
     return  func(c * gin.Context){
-        
-    }
 
+        id := c.Param("id")
+        if id == ""{
+            c.JSON(http.StatusBadRequest, gin.H{"error" : "id пустое"})
+            return
+        }
+
+        tx := db.Begin()
+
+        result:= tx.Delete(&models.Author{}, id)
+
+        if result.Error !=nil{
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+            return
+        }
+
+        if result.RowsAffected == 0{
+            tx.Rollback()
+            c.JSON(http.StatusNotFound, gin.H{"error":"Автор не найден"})
+            return
+
+        }
+        tx.Commit()
+
+        c.JSON(http.StatusOK, gin.H{
+            "message": "Автор был удален успешно",
+            "id":      id,
+        })
+    }
 }
 
 func BookDelete(db *gorm.DB) gin.HandlerFunc{
     return  func(c * gin.Context){
-        
+        id := c.Param("id")
+        if id == ""{
+            c.JSON(http.StatusBadRequest, gin.H{"error": "id пустое"})
+            return
+        }
+        tx := db.Begin()
+
+        result:= db.Delete(&models.Book{}, id)
+
+        if result.Error !=nil{
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+            return
+        }
+
+        if result.RowsAffected == 0{
+            tx.Rollback()
+            c.JSON(http.StatusNotFound, gin.H{"error":"Книга не найдена"})
+            return
+
+        }
+        tx.Commit()
+
+        c.JSON(http.StatusOK, gin.H{
+            "message": "Книга была удалена успешно",
+            "id":      id,
+        })
     }
 
 }
 
-func AuthorRead(db *gorm.DB) gin.HandlerFunc{
+func GetAllBooks(db *gorm.DB) gin.HandlerFunc{
     return  func(c * gin.Context){
+        var books []models.Book
+        db.Find(&books)
         
+        c.JSON(http.StatusOK, gin.H{"data": books}) 
     }
 
 }
 
-func BookRead(db *gorm.DB) gin.HandlerFunc{
+func GetAllAuthors(db *gorm.DB) gin.HandlerFunc{
     return  func(c * gin.Context){
+        var authors []models.Author
+        db.Find(&authors)
         
+        c.JSON(http.StatusOK, gin.H{"data": authors}) 
     }
+}
 
+func GetOneBook(db *gorm.DB) gin.HandlerFunc{
+    return func(c *gin.Context){
+    var book models.Book
+
+    if err := db.Where("id = ?", c.Param("id")).First(&book).Error; err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+    return
+  }
+
+  c.JSON(http.StatusOK, gin.H{"data": book})
+ }
+}
+
+
+func GetOneAuthor(db *gorm.DB) gin.HandlerFunc{
+    return func(c *gin.Context){
+    var author models.Author
+
+    if err := db.Where("id = ?", c.Param("id")).First(&author).Error; err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "Запись не найдена!"})
+    return
+  }
+
+  c.JSON(http.StatusOK, gin.H{"data": author})
+ }
 }
 
 
