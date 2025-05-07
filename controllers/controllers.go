@@ -49,11 +49,13 @@ func BookCreate(db *gorm.DB) gin.HandlerFunc {
         result := db.Create(&book)
 
         if result.Error != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка создания книги"  +result.Error.Error()})
+            c.JSON(http.StatusBadRequest, gin.H{
+                "error": result.Error.Error(),
+            })
             return
         }
         if err :=db.Preload("Author").First(&book, book.ID).Error; err!=nil{
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора: " + err.Error()})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка загрузки данных автора:  " + err.Error()})
             return
         }
         c.JSON(http.StatusOK, gin.H{"book":book})

@@ -13,11 +13,12 @@ type Author struct {
     Books    []Book    
 }
 
-func (a *Author) BeforeCreate(db *gorm.DB) (err error) {
+func (a *Author) BeforeCreate(tx *gorm.DB) (err error) {
 	 var existing_author Author 
   
-	 if err := db.Where("name = ?", a.Name).First(&existing_author).Error; err != nil {
+	 if err := tx.Where("name = ?", a.Name).First(&existing_author).Error; err != nil {
 		return fmt.Errorf("автор с таким именем уже существует")
 	}
+	
 	return nil
 }
