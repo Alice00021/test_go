@@ -29,3 +29,14 @@ func (a *Author) BeforeCreate(tx *gorm.DB) (err error) {
     return nil
 }
 
+func (a *Author) BeforeUpdate(tx *gorm.DB) (err error){
+	var original Author
+	if err:= tx.First(&original, a.ID).Error; err !=nil{
+		return err
+	}
+
+	if a.Name == original.Name && a.Gender == original.Gender{
+		return errors.New("нет изменений")
+	}
+	return nil
+}

@@ -30,5 +30,18 @@ func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
     return nil
 }
 
+func (b *Book) BeforeUpdate(tx *gorm.DB) (err error){
+	var original Book
+
+	if err:= tx.First(&original, b.ID).Error; err !=nil{
+		return err
+	}
+
+	if b.Title == original.Title && b.AuthorID == original.AuthorID{
+		return errors.New("нет изменений")
+	}
+	return nil
+}
+
 
 
