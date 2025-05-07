@@ -127,3 +127,26 @@ func AuthorDelete(db *gorm.DB) gin.HandlerFunc{
 
 }
 
+func BookDelete(db *gorm.DB) gin.HandlerFunc{
+    return  func(c * gin.Context){
+        
+    }
+
+}
+
+func AuthorRead(db *gorm.DB) gin.HandlerFunc{
+    return  func(c * gin.Context){
+        
+    }
+
+}
+
+func BookRead(db *gorm.DB) gin.HandlerFunc{
+    return  func(c * gin.Context){
+        
+    }
+
+}
+
+
+

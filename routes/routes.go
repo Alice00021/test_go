@@ -13,8 +13,11 @@ func SetupRoutes(router *gin.Engine, db *gorm.DB) {
     {
         api.POST("/authors", controllers.AuthorsCreate(db))
         api.POST("/books", controllers.BookCreate(db))
+
         api.PUT("/authors/:id", controllers.AuthorUpdate(db))
         api.PUT("/books/:id", controllers.BookUpdate(db))
+
+        
     }
 }
 
