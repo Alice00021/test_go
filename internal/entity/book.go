@@ -1,8 +1,8 @@
-package models
+package entity
 
 import (
-	"errors"
-	"fmt"
+	/* "errors"
+	"fmt" */
 
 	"gorm.io/gorm"
 )
@@ -14,7 +14,7 @@ type Book struct {
     Author     Author    
 }
 
-func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
+/* func (b *Book) BeforeCreate(tx *gorm.DB) (err error){
 	var author_exist Author
 
 	if err := tx.First(&author_exist, b.AuthorID).Error; err != nil {
@@ -41,7 +41,7 @@ func (b *Book) BeforeUpdate(tx *gorm.DB) (err error){
 		return errors.New("нет изменений")
 	}
 	return nil
-}
+} */
 
 
 

@@ -1,8 +1,8 @@
-package models
+package entity
 
 import (
-	"errors"
-	"fmt"
+	/* "errors"
+	"fmt" */
 
 	"gorm.io/gorm"
 )
@@ -14,7 +14,7 @@ type Author struct {
     Books    []Book    
 }
 
-func (a *Author) BeforeCreate(tx *gorm.DB) (err error) {
+/* func (a *Author) BeforeCreate(tx *gorm.DB) (err error) {
 	 var existing_author Author 
   
 	err = tx.Where("name = ?", a.Name).First(&existing_author).Error
@@ -39,4 +39,4 @@ func (a *Author) BeforeUpdate(tx *gorm.DB) (err error){
 		return errors.New("нет изменений")
 	}
 	return nil
-}
+} */

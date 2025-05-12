@@ -1,5 +1,7 @@
 package main
 
+/* package main
+
 import (
     "log"
     "test_go/config"
@@ -19,14 +21,14 @@ func main() {
     db, err := models.Init_DB(cfg)
     if err != nil {
         log.Fatalf("Ошибка инициализации базы данных: %v", err)
-    }
+    } */
 
     /* // Автомиграция для создания таблиц
     if err := db.AutoMigrate(&models.Author{}); err != nil {
         log.Fatalf("Ошибка миграции базы данных: %v", err)
     }
  */
-    if err := migrations.RunMigrations(db); err != nil {
+    /* if err := migrations.RunMigrations(db); err != nil {
 		panic("migration failed: " + err.Error())
 	}
 
@@ -37,4 +39,4 @@ func main() {
     if err := router.Run(":8080"); err != nil {
         log.Fatalf("Ошибка запуска сервера: %v", err)
     }
-}
+} */
