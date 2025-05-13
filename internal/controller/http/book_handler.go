@@ -16,7 +16,7 @@ func NewBookHandler(bookService service.BookService) *BookHandler{
 	return &BookHandler{bookService: bookService}
 }
 
-func (h *BookHandler) CrateBook(c *gin.Context){
+func (h *BookHandler) CreateBook(c *gin.Context){
 
 	var body struct {
 		Title      string   `json:"title" binding:"required"`
