@@ -10,7 +10,7 @@ func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler){
 	{
 		api.POST("/books", bookHandler.CreateBook)
 		api.PUT("/books/:id", bookHandler.UpdateBook)
-		api.DELETE("/books:id", bookHandler.DeleteBook)
+		api.DELETE("/books/:id", bookHandler.DeleteBook)
 		api.GET("/books/:id", bookHandler.GetBook)
 		api.GET("/books", bookHandler.GetAllBooks)
 	}

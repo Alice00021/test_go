@@ -16,7 +16,7 @@ import (
 )
 
 type App struct{
-	router *gin.Engine
+	Router *gin.Engine
 }
 
 func NewApp() (*App, error) {
@@ -52,5 +52,5 @@ func NewApp() (*App, error) {
 	router := gin.Default()
 	routes.SetUpRoutes(router, bookHandler) //, authorHandler)
 
-	return &App{router: router}, nil
+	return &App{Router: router}, nil
 }
