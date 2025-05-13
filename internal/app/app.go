@@ -38,19 +38,19 @@ func NewApp() (*App, error) {
 
 	// Инициализация репозиториев
 	bookRepo := pg.NewBookRepo(dbConn)
-	/* authorRepo := pg.NewAuthorRepository(dbConn) */
+	authorRepo := pg.NewAuthorRepo(dbConn)
 
 	// Инициализация сервисов
 	bookSvc := service.NewBookService(bookRepo)
-	/* authorSvc := service.NewAuthorService(authorRepo) */
+	authorSvc := service.NewAuthorService(authorRepo)
 
 	// Инициализация обработчиков
 	bookHandler := http.NewBookHandler(bookSvc)
-	/* authorHandler := http.NewAuthorHandler(authorSvc) */
+	authorHandler := http.NewAuthorHandler(authorSvc)
 
 	// Настройка маршрутов
 	router := gin.Default()
-	routes.SetUpRoutes(router, bookHandler) //, authorHandler)
+	routes.SetUpRoutes(router, bookHandler, authorHandler)
 
 	return &App{Router: router}, nil
 }

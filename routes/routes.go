@@ -5,7 +5,7 @@ import (
 	"test_go/internal/controller/http"
 )
 
-func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler){
+func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandler *http.AuthorHandler){
 	api := router.Group("/api")
 	{
 		api.POST("/books", bookHandler.CreateBook)
@@ -13,6 +13,13 @@ func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler){
 		api.DELETE("/books/:id", bookHandler.DeleteBook)
 		api.GET("/books/:id", bookHandler.GetBook)
 		api.GET("/books", bookHandler.GetAllBooks)
+
+		api.POST("/authors", authorHandler.CreateAuthor)
+		api.PUT("/authors/:id", authorHandler.UpdateAuthor)
+		api.DELETE("/authors/:id", authorHandler.DeleteAuthor)
+		api.GET("/authors/:id", authorHandler.GetAuthor)
+		api.GET("/authors", authorHandler.GetAllAuthors)
 	}
+
 }
 
