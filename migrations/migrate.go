@@ -1,9 +1,9 @@
 package migrations
 
-/* import (
+import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
-	"test_go/models"
+	"test_go/internal/entity"
 
 )
 
@@ -13,14 +13,14 @@ func RunMigrations(db *gorm.DB) error {
 			ID: "2025050701_rename_female_to_gender",
 			Migrate: func(tx *gorm.DB) error {
 
-				return tx.Migrator().RenameColumn(&models.Author{}, "female", "gender")
+				return tx.Migrator().RenameColumn(&entity.Author{}, "female", "gender")
 			},
 			Rollback: func(tx *gorm.DB) error {
 				
-				return tx.Migrator().RenameColumn(&models.Author{}, "gender", "female")
+				return tx.Migrator().RenameColumn(&entity.Author{}, "gender", "female")
 			},
 		},
 	})
 
 	return m.Migrate()
-} */
+}
