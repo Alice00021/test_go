@@ -1,0 +1,151 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact: {}
+  description: Это пример API для управления авторами.
+  title: Author API
+  version: "1.0"
+paths:
+  /api/authors:
+    get:
+      description: Возвращает список всех авторов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'authors: список авторов'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить всех авторов
+      tags:
+      - authors
+    post:
+      consumes:
+      - application/json
+      description: Создает нового автора с указанным именем и полом
+      parameters:
+      - description: Данные автора
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'author: созданный автор'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать автора
+      tags:
+      - authors
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные автора (имя и пол)
+      parameters:
+      - description: Обновленные данные автора
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'update_author: обновленный автор'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить автора
+      tags:
+      - authors
+  /api/authors/{id}:
+    delete:
+      description: Удаляет автора по указанному ID
+      parameters:
+      - description: ID автора
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: сообщение об успешном удалении
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: id пустое
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить автора
+      tags:
+      - authors
+    get:
+      description: Возвращает автора по указанному ID
+      parameters:
+      - description: ID автора
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'author: найденный автор'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: id пустое
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: автор не найден
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить автора по ID
+      tags:
+      - authors
+swagger: "2.0"
