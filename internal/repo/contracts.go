@@ -8,7 +8,7 @@ import (
 
 type BookRepository interface{
 	Create(ctx context.Context, book *entity.Book) error
-    Update(ctx context.Context, book *entity.Book) error
+    Update(ctx context.Context, book *entity.Book, id uint) error
     Delete(ctx context.Context, id uint) error
     GetByID(ctx context.Context, id uint) (*entity.Book, error)
     GetAll(ctx context.Context) ([]entity.Book, error)

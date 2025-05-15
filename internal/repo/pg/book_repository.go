@@ -20,7 +20,7 @@ func (r *BookRepo) Create(ctx context.Context, book *entity.Book) error {
     return r.db.WithContext(ctx).Create(book).Error
 }
 
-func (r *BookRepo) Update(ctx context.Context, book *entity.Book) error {
+func (r *BookRepo) Update(ctx context.Context, book *entity.Book, id uint) error {
     return r.db.WithContext(ctx).Save(book).Error
 }
 

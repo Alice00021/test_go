@@ -47,19 +47,44 @@ func (h *BookHandler) CreateBook(c *gin.Context){
 	c.JSON(http.StatusCreated, gin.H{"book":book})
 }
 
+type UpdateBookRequest struct {
+	Title  string `json:"title" binding:"required"`
+	AuthorID uint   `json:"authorID"`
+}
 
+// UpdateBook обновляет существующую книгу
+// @Summary Обновить книгу
+// @Description Обновляет данные книги 
+// @Tags books
+// @Accept json
+// @Produce json
+// @Param id path int true "ID книги"
+// @Param body body UpdateBookRequest true "Обновленные данные книги"
+// @Success 200 {object} map[string]interface{} "update_author: обновленная книга"
+// @Failure 400 {object} map[string]interface{} "неверный формат данных"
+// @Failure 404 {object} map[string]interface{} "книга не найден"
+// @Failure 500 {object} map[string]interface{} "ошибка сервера"
+// @Router /books/{id} [patch]
 func (h *BookHandler) UpdateBook(c *gin.Context){
-
-	var body struct {
-		Title  string `json:"title" binding:"required"`
-		AuthorID uint  `json:"authorID" binding:"required"`
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
 	}
 
+	_, err = h.bookService.GetByIDBook(c.Request.Context(), uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Книга не найдена"})
+		return
+	}
+
+	var body UpdateBookRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
 		return
 	}
-	book, err := h.bookService.UpdateBook(c.Request.Context(), body.Title, body.AuthorID)
+	book, err := h.bookService.UpdateBook(c.Request.Context(), body.Title, body.AuthorID, uint(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления книги: " + err.Error()})
 		return

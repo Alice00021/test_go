@@ -8,7 +8,7 @@ import (
 
 type BookService interface {
     CreateBook(ctx context.Context, title string, authorID uint) (*entity.Book, error)
-    UpdateBook(ctx context.Context, title string, authorID uint) (*entity.Book, error)
+    UpdateBook(ctx context.Context, title string, authorID uint, id uint)(*entity.Book, error)
     DeleteBook(ctx context.Context, id uint)   error
     GetByIDBook(ctx context.Context, id uint) (*entity.Book, error)
     GetAllBooks(ctx context.Context) ([]entity.Book, error) 
@@ -30,12 +30,19 @@ func (s *bookService) CreateBook(ctx context.Context, title string, authorID uin
     return book, nil
 }
 
-func (s *bookService) UpdateBook(ctx context.Context, title string, authorID uint) (*entity.Book, error) {
-    book := &entity.Book{Title: title, AuthorID: authorID}
-    if err := s.repo.Update(ctx, book); err != nil {
+func (s *bookService) UpdateBook(ctx context.Context, title string, authorID uint, id uint) (*entity.Book, error) {
+    book, err:= s.repo.GetByID(ctx, id)
+
+    if err != nil{
         return nil, err
     }
-    return book, nil
+    book.Title=title
+    book.AuthorID=authorID
+
+    if err:= s.repo.Update(ctx,book, id);err!=nil{
+        return nil, err
+    }
+    return book, nil   
 }
 
 

@@ -1,4 +1,23 @@
 basePath: /api
+definitions:
+  http.UpdateAuthorRequest:
+    properties:
+      gender:
+        type: boolean
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  http.UpdateBookRequest:
+    properties:
+      authorID:
+        type: integer
+      title:
+        type: string
+    required:
+    - title
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -121,12 +140,17 @@ paths:
       - application/json
       description: Обновляет данные автора (имя и пол)
       parameters:
+      - description: ID автора
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: Обновленные данные автора
         in: body
         name: body
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/http.UpdateAuthorRequest'
       produces:
       - application/json
       responses:
@@ -137,6 +161,11 @@ paths:
             type: object
         "400":
           description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: автор не найден
           schema:
             additionalProperties: true
             type: object
@@ -256,6 +285,48 @@ paths:
             additionalProperties: true
             type: object
       summary: Получить книгу по ID
+      tags:
+      - books
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет данные книги
+      parameters:
+      - description: ID книги
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновленные данные книги
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateBookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'update_author: обновленная книга'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: книга не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить книгу
       tags:
       - books
 swagger: "2.0"

@@ -48,33 +48,44 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context){
 	c.JSON(http.StatusCreated, gin.H{"author":author})
 }
 
+type UpdateAuthorRequest struct {
+	Name   string `json:"name" binding:"required"`
+	Gender bool   `json:"gender"`
+}
+
 // UpdateAuthor обновляет существующего автора
 // @Summary Обновить автора
 // @Description Обновляет данные автора (имя и пол)
 // @Tags authors
 // @Accept json
 // @Produce json
-// @Param body body object true "Обновленные данные автора" { "name": "string", "gender": "boolean" }
+// @Param id path int true "ID автора"
+// @Param body body UpdateAuthorRequest true "Обновленные данные автора"
 // @Success 200 {object} map[string]interface{} "update_author: обновленный автор"
 // @Failure 400 {object} map[string]interface{} "неверный формат данных"
+// @Failure 404 {object} map[string]interface{} "автор не найден"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /authors/{id} [patch]
-func (h *AuthorHandler) UpdateAuthor(c *gin.Context){
+func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
-	var body struct {
-		Name   string `json:"name" binding:"required"`
-		Gender bool   `json:"gender"`
+
+	_, err = h.authorService.GetByIDAuthor(c.Request.Context(), uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Автор не найден"})
+		return
 	}
 
+	var body UpdateAuthorRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
 		return
 	}
+
 	author, err := h.authorService.UpdateAuthor(c.Request.Context(), body.Name, body.Gender, uint(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления автора: " + err.Error()})
@@ -83,6 +94,7 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context){
 
 	c.JSON(http.StatusOK, gin.H{"update_author": author})
 }
+
 
 // DeleteAuthor удаляет автора по ID
 // @Summary Удалить автора
@@ -130,11 +142,11 @@ func (h *AuthorHandler) GetAuthor(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id пустое"})
 		return
 	}
-	book, err := h.authorService.GetByIDAuthor(c.Request.Context(), uint(id))
+	author, err := h.authorService.GetByIDAuthor(c.Request.Context(), uint(id))
 	if err !=nil{
 		c.JSON(http.StatusNotFound, gin.H{"error":"Автор не найден"})
 	}
-		c.JSON(http.StatusOK, gin.H{"author": book})
+		c.JSON(http.StatusOK, gin.H{"author": author})
 }
 
 // GetAllAuthors получает список всех авторов
