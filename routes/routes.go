@@ -9,13 +9,13 @@ func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandle
 	api := router.Group("/api")
 	{
 		api.POST("/books", bookHandler.CreateBook)
-		api.PUT("/books/:id", bookHandler.UpdateBook)
+		api.PATCH("/books/:id", bookHandler.UpdateBook)
 		api.DELETE("/books/:id", bookHandler.DeleteBook)
 		api.GET("/books/:id", bookHandler.GetBook)
 		api.GET("/books", bookHandler.GetAllBooks)
 
 		api.POST("/authors", authorHandler.CreateAuthor)
-		api.PUT("/authors/:id", authorHandler.UpdateAuthor)
+		api.PATCH("/authors/:id", authorHandler.UpdateAuthor)
 		api.DELETE("/authors/:id", authorHandler.DeleteAuthor)
 		api.GET("/authors/:id", authorHandler.GetAuthor)
 		api.GET("/authors", authorHandler.GetAllAuthors)

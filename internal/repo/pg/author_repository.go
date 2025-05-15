@@ -23,7 +23,7 @@ func (r *AuthorRepo) Create(ctx context.Context, author *entity.Author) error {
 	return r.db.WithContext(ctx).Create(author).Error
 }
 
-func (r *AuthorRepo) Update(ctx context.Context, author *entity.Author) error {
+func (r *AuthorRepo) Update(ctx context.Context, author *entity.Author, id uint) error {
 	return r.db.WithContext(ctx).Save(author).Error
 }
 func (r *AuthorRepo) Delete(ctx context.Context, id uint) error {

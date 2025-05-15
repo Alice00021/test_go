@@ -9,7 +9,7 @@ import (
 
 type AuthorService interface {
 	CreateAuthor(ctx context.Context, name string, gender bool) (*entity.Author, error)
-	UpdateAuthor(ctx context.Context,  name string, gender bool) (*entity.Author, error)
+	UpdateAuthor(ctx context.Context,  name string, gender bool, id uint) (*entity.Author, error)
 	DeleteAuthor(ctx context.Context, id uint) error
 	GetByIDAuthor(ctx context.Context, id uint) (*entity.Author, error)
 	GetAllAuthors(ctx context.Context) ([]entity.Author, error)
@@ -33,9 +33,15 @@ func (s *authorService) CreateAuthor(ctx context.Context, name string, gender bo
     return author, nil
 }
  
-func (s *authorService) UpdateAuthor(ctx context.Context, name string, gender bool) (*entity.Author, error){
-	author := &entity.Author{Name: name, Gender: gender}
-    if err := s.repo.Update(ctx, author); err != nil {
+func (s *authorService) UpdateAuthor(ctx context.Context, name string, gender bool, id uint) (*entity.Author, error){
+	author, err := s.repo.GetByID(ctx, id)
+    if err != nil{
+        return nil, err
+    }
+    author.Name = name
+    author.Gender = gender
+
+    if err:= s.repo.Update(ctx, author, id); err!= nil{
         return nil, err
     }
     return author, nil

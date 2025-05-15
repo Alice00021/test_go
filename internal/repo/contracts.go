@@ -16,7 +16,7 @@ type BookRepository interface{
 
 type AuthorRepository interface {
     Create(ctx context.Context, author *entity.Author) error
-    Update(ctx context.Context, author *entity.Author) error
+    Update(ctx context.Context, author *entity.Author, id uint) error
     Delete(ctx context.Context, id uint) error
     GetByID(ctx context.Context, id uint) (*entity.Author, error)
     GetAll(ctx context.Context) ([]entity.Author, error)

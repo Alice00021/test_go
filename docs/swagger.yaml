@@ -2,11 +2,11 @@ basePath: /api
 host: localhost:8080
 info:
   contact: {}
-  description: Это пример API для управления авторами.
+  description: Это пример API для управления авторами и книгами
   title: Author API
   version: "1.0"
 paths:
-  /api/authors:
+  /authors:
     get:
       description: Возвращает список всех авторов
       produces:
@@ -57,39 +57,7 @@ paths:
       summary: Создать автора
       tags:
       - authors
-    put:
-      consumes:
-      - application/json
-      description: Обновляет данные автора (имя и пол)
-      parameters:
-      - description: Обновленные данные автора
-        in: body
-        name: body
-        required: true
-        schema:
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'update_author: обновленный автор'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: неверный формат данных
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: ошибка сервера
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Обновить автора
-      tags:
-      - authors
-  /api/authors/{id}:
+  /authors/{id}:
     delete:
       description: Удаляет автора по указанному ID
       parameters:
@@ -148,4 +116,146 @@ paths:
       summary: Получить автора по ID
       tags:
       - authors
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет данные автора (имя и пол)
+      parameters:
+      - description: Обновленные данные автора
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'update_author: обновленный автор'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить автора
+      tags:
+      - authors
+  /books:
+    get:
+      description: Возвращает список всех книг
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'books: список книг'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить все книги
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: Создает новую книгу с указапнным названием и id автора
+      parameters:
+      - description: Данные книги
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'book: созданная книга'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: неверный формат данных
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать книгу
+      tags:
+      - books
+  /books/{id}:
+    delete:
+      description: Удаляет книгу по указанному ID
+      parameters:
+      - description: ID книги
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: сообщение об успешном удалении
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: id пустое
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить книгу
+      tags:
+      - books
+    get:
+      description: Возвращает книгу по указанному ID
+      parameters:
+      - description: ID книги
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'book: найденная книга'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: id пустое
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: книга не найдена
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить книгу по ID
+      tags:
+      - books
 swagger: "2.0"

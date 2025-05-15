@@ -26,7 +26,7 @@ func NewAuthorHandler(authorService service.AuthorService) *AuthorHandler{
 // @Success 201 {object} map[string]interface{} "author: созданный автор"
 // @Failure 400 {object} map[string]interface{} "неверный формат данных"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
-// @Router /api/authors [post]
+// @Router /authors [post]
 func (h *AuthorHandler) CreateAuthor(c *gin.Context){
 
 	var body struct {
@@ -58,9 +58,14 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context){
 // @Success 200 {object} map[string]interface{} "update_author: обновленный автор"
 // @Failure 400 {object} map[string]interface{} "неверный формат данных"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
-// @Router /api/authors [put]
+// @Router /authors/{id} [patch]
 func (h *AuthorHandler) UpdateAuthor(c *gin.Context){
-
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
 	var body struct {
 		Name   string `json:"name" binding:"required"`
 		Gender bool   `json:"gender"`
@@ -70,9 +75,9 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат данных: " + err.Error()})
 		return
 	}
-	author, err := h.authorService.UpdateAuthor(c.Request.Context(), body.Name, body.Gender)
+	author, err := h.authorService.UpdateAuthor(c.Request.Context(), body.Name, body.Gender, uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления книги: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка обновления автора: " + err.Error()})
 		return
 	}
 
@@ -88,7 +93,7 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context){
 // @Success 200 {object} map[string]interface{} "сообщение об успешном удалении"
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
-// @Router /api/authors/{id} [delete]
+// @Router /authors/{id} [delete]
 func (h *AuthorHandler) DeleteAuthor(c *gin.Context){
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
@@ -117,7 +122,7 @@ func (h *AuthorHandler) DeleteAuthor(c *gin.Context){
 // @Success 200 {object} map[string]interface{} "author: найденный автор"
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 404 {object} map[string]interface{} "автор не найден"
-// @Router /api/authors/{id} [get]
+// @Router /authors/{id} [get]
 func (h *AuthorHandler) GetAuthor(c *gin.Context){
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
@@ -139,7 +144,7 @@ func (h *AuthorHandler) GetAuthor(c *gin.Context){
 // @Produce json
 // @Success 200 {object} map[string]interface{} "authors: список авторов"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
-// @Router /api/authors [get]
+// @Router /authors [get]
 func (h *AuthorHandler) GetAllAuthors(c *gin.Context){
 	books, err := h.authorService.GetAllAuthors(c.Request.Context())
 	if err!=nil{

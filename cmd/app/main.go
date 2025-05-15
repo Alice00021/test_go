@@ -10,7 +10,7 @@ import (
 
 // @title Author API
 // @version 1.0
-// @description Это пример API для управления авторами.
+// @description Это пример API для управления авторами и книгами
 // @host localhost:8080
 // @BasePath /api
 func main() {
