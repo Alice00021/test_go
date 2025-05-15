@@ -8,7 +8,7 @@ import (
 	"test_go/internal/controller/http"
 	"test_go/internal/repo/pg"
 	"test_go/internal/service"
-	"test_go/migrations"
+	/* "test_go/migrations" */
 	"test_go/routes"
 
 	"github.com/gin-gonic/gin"
@@ -31,11 +31,11 @@ func NewApp() (*App, error) {
 		return nil, fmt.Errorf("ошибка инициализации базы данных: %w", err)
 	}
 
-	// Выполнение миграций
+	/* // Выполнение миграций
 	if err := migrations.RunMigrations(dbConn); err != nil {
 		return nil, fmt.Errorf("ошибка выполнения миграций: %w", err)
 	}
-
+ */
 	// Инициализация репозиториев
 	bookRepo := pg.NewBookRepo(dbConn)
 	authorRepo := pg.NewAuthorRepo(dbConn)

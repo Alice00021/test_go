@@ -1,5 +1,7 @@
 package migrations
 
+/* package migrations
+
 import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
@@ -23,4 +25,4 @@ func RunMigrations(db *gorm.DB) error {
 	})
 
 	return m.Migrate()
-}
+} */
