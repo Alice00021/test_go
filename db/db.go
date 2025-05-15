@@ -10,7 +10,13 @@ import (
 func Init_DB(cfg *config.Config) (*gorm.DB, error) {
     dsn := fmt.Sprintf(
         "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
-        cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode, cfg.DBTimeZone,
+        cfg.Database.Host,
+        cfg.Database.User,
+        cfg.Database.Password,
+        cfg.Database.Name,
+        cfg.Database.Port,
+        cfg.Database.SSLMode,
+        cfg.Database.TimeZone,
     )
 
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

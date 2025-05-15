@@ -2,37 +2,41 @@ package config
 import (
     "fmt"
     "os"
-    "github.com/joho/godotenv"
+    "gopkg.in/yaml.v2"
+
 )
 
 type Config struct {
-    DBHost     string
-    DBUser     string
-    DBPassword string
-    DBName     string
-    DBPort     string
-    DBSSLMode  string
-    DBTimeZone string
+    Database DatabaseConfig `yaml:"database"`
+}
+type DatabaseConfig struct {
+    Host     string `yaml:"host"`
+    User     string `yaml:"user"`
+    Password string `yaml:"password"`
+    Name     string `yaml:"name"`
+    Port     string `yaml:"port"`
+    SSLMode  string `yaml:"sslmode"`
+    TimeZone string `yaml:"timezone"`
 }
 
 func Load() (*Config, error) {
-    err := godotenv.Load()
+    filePath := "config/config.yaml"
+
+    yamlFile, err := os.ReadFile(filePath)
     if err != nil {
-        return nil, fmt.Errorf("ошибка загрузки .env файла: %v", err)
+        return nil, fmt.Errorf("не удалось прочитать config.yaml: %v", err)
     }
 
-    cfg := &Config{
-        DBHost:     os.Getenv("DB_HOST"),
-        DBUser:     os.Getenv("DB_USER"),
-        DBPassword: os.Getenv("DB_PASSWORD"),
-        DBName:     os.Getenv("DB_NAME"),
-        DBPort:     os.Getenv("DB_PORT"),
-        DBSSLMode:  os.Getenv("DB_SSLMODE"),
-        DBTimeZone: os.Getenv("DB_TIMEZONE"),
+    var cfg Config
+    err = yaml.Unmarshal(yamlFile, &cfg)
+    if err != nil {
+        return nil, fmt.Errorf("не удалось распарсить YAML: %v", err)
     }
 
-	if cfg.DBHost == "" || cfg.DBUser == "" || cfg.DBName == "" || cfg.DBPort == "" {
-        return nil, fmt.Errorf("отсутствуют обязательные переменные окружения: DB_HOST, DB_USER, DB_NAME, DB_PORT")
+    // Проверим обязательные поля
+    if cfg.Database.Host == "" || cfg.Database.User == "" || cfg.Database.Name == "" || cfg.Database.Port == "" {
+        return nil, fmt.Errorf("в config.yaml отсутствуют обязательные параметры БД")
     }
-	return cfg, nil
+
+    return &cfg, nil
 }
