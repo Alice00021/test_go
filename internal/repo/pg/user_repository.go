@@ -24,29 +24,12 @@ func (r *UserRepo) Update(ctx context.Context, user *entity.User, id uint) error
     return r.db.WithContext(ctx).Save(user).Error
 }
 
-func (r *UserRepo) Delete(ctx context.Context, id uint) error {
-    result := r.db.WithContext(ctx).Delete(&entity.User{}, id)
-    if result.Error != nil {
-        return result.Error
-    }
-    if result.RowsAffected == 0 {
-        return gorm.ErrRecordNotFound
-    }
-    return nil
-}
 
 func (r *UserRepo) GetByUserName(ctx context.Context, username string) (*entity.User, error) {
     var user entity.User
-    if err := r.db.WithContext(ctx).Preload("Author").First(&user, username).Error; err != nil {
+    if err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
         return nil, err
     }
     return &user, nil
 }
 
-func (r *UserRepo) GetAll(ctx context.Context) ([]entity.User, error) {
-    var users []entity.User
-    if err := r.db.WithContext(ctx).Preload("Author").Find(&users).Error; err != nil {
-        return nil, err
-    }
-    return users, nil
-}

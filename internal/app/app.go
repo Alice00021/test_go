@@ -39,18 +39,18 @@ func NewApp() (*App, error) {
 	// Инициализация репозиториев
 	bookRepo := pg.NewBookRepo(dbConn)
 	authorRepo := pg.NewAuthorRepo(dbConn)
-
+	userRepo := pg.NewUserRepo(dbConn)
 	// Инициализация сервисов
 	bookSvc := service.NewBookService(bookRepo)
 	authorSvc := service.NewAuthorService(authorRepo)
-
+	userSvc := service.NewAuthService(userRepo)
 	// Инициализация обработчиков
 	bookHandler := http.NewBookHandler(bookSvc)
 	authorHandler := http.NewAuthorHandler(authorSvc)
-
+	authHandler := http.NewAuthHandler(userSvc)
 	// Настройка маршрутов
 	router := gin.Default()
-	routes.SetUpRoutes(router, bookHandler, authorHandler)
+	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler)
 
 	return &App{Router: router}, nil
 }

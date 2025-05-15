@@ -2,11 +2,19 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+
 	"test_go/internal/controller/http"
+	"test_go/pkg/middleware"
 )
 
-func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandler *http.AuthorHandler){
+func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandler *http.AuthorHandler, authHandler *http.AuthHandler){
+	authGroup := router.Group("auth")
+	{	
+		authGroup.POST("/register", authHandler.Register)
+		authGroup.POST("/login", authHandler.Login)
+	}
 	api := router.Group("/api")
+	api.Use(middleware.AuthMiddleware())
 	{
 		api.POST("/books", bookHandler.CreateBook)
 		api.PATCH("/books/:id", bookHandler.UpdateBook)
