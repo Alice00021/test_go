@@ -26,4 +26,5 @@ type UserRepository interface {
     Create(ctx context.Context, user *entity.User) error
     Update(ctx context.Context, user *entity.User, id uint) error
     GetByUserName(ctx context.Context, username string) (*entity.User, error)
+    GetAll(ctx context.Context) ([]entity.User, error)
 }

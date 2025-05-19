@@ -9,11 +9,11 @@ import (
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
+	authService service.UserService
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(userService service.UserService) *AuthHandler {
+	return &AuthHandler{authService: userService}
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -42,13 +42,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.authService.Login(c.Request.Context(), credentials.Username, credentials.Password)
+	tokenPair, err := h.authService.Login(c.Request.Context(), credentials.Username, credentials.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{
+		"acess_token": tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+
+	})
 }
 
 func (h *AuthHandler) Profile(c *gin.Context) {
