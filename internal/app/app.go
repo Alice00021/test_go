@@ -10,6 +10,7 @@ import (
 	"test_go/internal/service"
 	/* "test_go/migrations" */
 	"test_go/routes"
+	"test_go/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,6 +26,8 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ошибка загрузки конфигурации: %w", err)
 	}
+	jwtManager := jwt.NewJWTManager(cfg.Jwt.SecretKey)
+
 
 	dbConn, err := db.Init_DB(cfg)
 	if err != nil {
@@ -43,14 +46,14 @@ func NewApp() (*App, error) {
 	// Инициализация сервисов
 	bookSvc := service.NewBookService(bookRepo)
 	authorSvc := service.NewAuthorService(authorRepo)
-	userSvc := service.NewAuthService(userRepo)
+	userSvc := service.NewAuthService(userRepo, jwtManager)
 	// Инициализация обработчиков
 	bookHandler := http.NewBookHandler(bookSvc)
 	authorHandler := http.NewAuthorHandler(authorSvc)
 	authHandler := http.NewAuthHandler(userSvc)
 	// Настройка маршрутов
 	router := gin.Default()
-	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler)
+	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler, jwtManager)
 
 	return &App{Router: router}, nil
 }

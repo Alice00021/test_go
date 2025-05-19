@@ -26,10 +26,14 @@ type TokenPair struct {
 
 type userService struct {
 	userRepo repo.UserRepository
+	jwtManager *jwt.JWTManager
 }
 
-func NewAuthService(userRepo repo.UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+func NewAuthService(userRepo repo.UserRepository, jwtManager *jwt.JWTManager) UserService {
+	return &userService{
+		userRepo: userRepo,
+		jwtManager: jwtManager,
+	}
 }
 
 func (s *userService) Register(ctx context.Context, user *entity.User) error {
@@ -52,12 +56,12 @@ func (s *userService) Login(ctx context.Context, username string, password strin
 		return nil, errors.New("invalid credentials")
 	}
 
-	acessToken, err := jwt.GenerateAccessToken(user.ID, user.Username)
+	acessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Username)
 	if err!=nil{
 		return nil, err
 	}
 
-	refreshToken, err := jwt. GenerateRefreshToken(user.ID, user.Username)
+	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID, user.Username)
 
 	if err!=nil{
 		return nil, err
@@ -83,7 +87,7 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]entity.User, error) {
 }
 
 func (s *userService) RefreshTokens(ctx context.Context, refreshToken string) (*TokenPair, error){
-	claims, err := jwt.ParseToken(refreshToken)
+	claims, err := s.jwtManager.ParseToken(refreshToken)
 	if err != nil {
 		return nil, errors.New("invalid refresh token")
 	}
@@ -92,12 +96,12 @@ func (s *userService) RefreshTokens(ctx context.Context, refreshToken string) (*
 		return nil, errors.New("user not found")
 	}
 
-	acessToken, err := jwt.GenerateAccessToken(user.ID, user.Username)
+	acessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	newRefreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Username)
+	newRefreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID, user.Username)
 
 	if err!=nil{
 		return nil, err

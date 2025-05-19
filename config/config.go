@@ -8,6 +8,10 @@ import (
 
 type Config struct {
     Database DatabaseConfig `yaml:"database"`
+    Jwt JWTConfig `yaml:"jwt"`
+}
+type JWTConfig struct{
+    SecretKey string `yaml:"SecretKey"`
 }
 type DatabaseConfig struct {
     Host     string `yaml:"host"`
@@ -33,9 +37,12 @@ func Load() (*Config, error) {
         return nil, fmt.Errorf("не удалось распарсить YAML: %v", err)
     }
 
-    // Проверим обязательные поля
     if cfg.Database.Host == "" || cfg.Database.User == "" || cfg.Database.Name == "" || cfg.Database.Port == "" {
         return nil, fmt.Errorf("в config.yaml отсутствуют обязательные параметры БД")
+    }
+
+    if cfg.Jwt.SecretKey== ""  {
+        return nil, fmt.Errorf("в config.yaml отсутствует секретный ключ для jwt")
     }
 
     return &cfg, nil

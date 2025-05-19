@@ -6,3 +6,6 @@ database:
   port: "5432"
   sslmode: "disable"
   timezone: "Europe/Moscow"
+
+jwt:
+  SecretKey: "какой-то-интересный-секретный-ключ"

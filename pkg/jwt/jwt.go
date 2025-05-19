@@ -2,16 +2,30 @@ package jwt
 
 import (
 	"time"
-
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	SecretKey          = "какой-то-интересный-секретный-ключ"
-	AccessTokenExpire  = 15 * time.Minute
-	RefreshTokenExpire = 7 * 24 * time.Hour
-	TokenExpiration    = 24 * time.Hour
-)
+/* func init_secret_key(cfg *config.Config) string {
+	SecretKey := fmt.Sprintf(
+		"SecretKey=%s",
+		cfg.Jwt.SecretKey,
+	)
+	return SecretKey
+} */
+
+type JWTManager struct {
+	secretKey string
+	AccessTokenExpire time.Duration
+	RefreshTokenExpire time.Duration
+}
+
+func NewJWTManager(secretKey string) *JWTManager {
+	return &JWTManager{
+		secretKey: secretKey,
+		AccessTokenExpire:  15 * time.Minute,
+		RefreshTokenExpire: 7 * 24 * time.Hour,
+	}
+}
 
 type Claims struct {
 	UserID   uint   `json:"user_id"`
@@ -19,14 +33,15 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateAccessToken(userID uint, username string)(string, error){
-	return generateToken(userID, username, AccessTokenExpire)
+
+func (jm *JWTManager) GenerateAccessToken(userID uint, username string)(string, error){
+	return jm.generateToken(userID, username, jm.AccessTokenExpire)
 }
 
-func GenerateRefreshToken(userID uint, username string)(string, error){
-	return generateToken(userID, username, RefreshTokenExpire)
+func (jm  *JWTManager) GenerateRefreshToken(userID uint, username string)(string, error){
+	return jm.generateToken(userID, username, jm.RefreshTokenExpire)
 }
-func generateToken(userID uint, username string, expire time.Duration) (string, error) {
+func (jm  *JWTManager) generateToken(userID uint, username string, expire time.Duration) (string, error) {
 	claims := &Claims{
 		UserID:   userID,
 		Username: username,
@@ -36,12 +51,12 @@ func generateToken(userID uint, username string, expire time.Duration) (string, 
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(SecretKey))
+	return token.SignedString([]byte(jm.secretKey))
 }
 
-func ParseToken(tokenString string) (*Claims, error) {
+func (jm  *JWTManager) ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
+		return []byte(jm.secretKey), nil
 	})
 
 	if err != nil {
