@@ -55,7 +55,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) Profile(c *gin.Context) {
+func (h *AuthHandler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -66,5 +66,29 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user_id":  userID,
 		"username": username,
+	})
+}
+
+
+func (h *AuthHandler) ChangePassword(c * gin.Context){
+	var credentials struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.authService.ChangePassword(c.Request.Context(), credentials.Username, credentials.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "can`t change password"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"acess_token": credentials.Username,
+		"refresh_token": credentials.Password,
+
 	})
 }

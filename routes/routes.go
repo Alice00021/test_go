@@ -10,12 +10,12 @@ import (
 
 func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandler *http.AuthorHandler, authHandler *http.AuthHandler, jwtManager *jwt.JWTManager){
 	authGroup := router.Group("auth")
+
 	{	
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/login", authHandler.Login)
 	}
 	api := router.Group("/api")
-	api.Use(middleware.AuthMiddleware(jwtManager))
 	{
 		api.POST("/books", bookHandler.CreateBook)
 		api.PATCH("/books/:id", bookHandler.UpdateBook)
@@ -29,6 +29,13 @@ func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandle
 		api.GET("/authors/:id", authorHandler.GetAuthor)
 		api.GET("/authors", authorHandler.GetAllAuthors)
 	}
+	
+	authGroup.Use(middleware.AuthMiddleware(jwtManager))
+{
+	authGroup.GET("/profile/:id", authHandler.GetProfile)
+	authGroup.PATCH("/profile", authHandler.ChangePassword)
+	/* authGroup.POST("/logout", handler.Logout) */
+}
 
 }
 

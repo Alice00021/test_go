@@ -20,8 +20,8 @@ type TokenPair struct {
     UpdateUser(ctx context.Context, user *entity.User, id uint) error
     GetByUserName(ctx context.Context, username string) (*entity.User, error)
     GetAllUsers(ctx context.Context) ([]entity.User, error)
-	/* ChangePassword(ctx context.Context, username string, password string) error
-	Logout(ctx context.Context, username string, password string) error */
+	ChangePassword(ctx context.Context, username string, password string) error
+/* 	Logout(ctx context.Context, username string, password string) error */
 }
 
 type userService struct {
@@ -113,10 +113,21 @@ func (s *userService) RefreshTokens(ctx context.Context, refreshToken string) (*
 	}, nil	
 }
 
-/* func (s *userService) ChangePassword(){
+func (s *userService) ChangePassword(ctx context.Context, username string, newpassword string) error{
+	user, err := s.userRepo.GetByUserName(ctx, username)
+	if err!=nil{
+		 return errors.New("user not found")
+	}
+	hashedPassword, err := auth.HashPassword(newpassword)
+
+	if err !=nil{
+		return err
+	}
+	user.Password = hashedPassword
+	return s.userRepo.Update(ctx, user, user.ID)
 
 }
 
-func (s *userService) Logout(){
+/* func (s *userService) Logout(){
 
 }  */
