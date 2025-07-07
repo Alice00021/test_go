@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 
 type WebSocketHandler struct {
 	hub         *Hub
-	authService service.AuthorService // или другие сервисы, если нужны
+	authService service.AuthorService
 }
 
 func NewWebSocketHandler(hub *Hub, authService service.UserService) *WebSocketHandler {

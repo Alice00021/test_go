@@ -1,20 +1,22 @@
 package http
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
-	"test_go/internal/controller"
 	"test_go/internal/service"
+	"test_go/pkg/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthorHandler struct {
 	authorService service.AuthorService
-	wsHub         *controller.Hub
+	wsHub         *websocket.Hub
 }
 
-func NewAuthorHandler(authorService service.AuthorService, wsHub *controller.Hub) *AuthorHandler {
+func NewAuthorHandler(authorService service.AuthorService, wsHub *websocket.Hub) *AuthorHandler {
 	return &AuthorHandler{
 		authorService: authorService,
 		wsHub:         wsHub,
@@ -54,7 +56,12 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
 		"event": "author_created",
 		"data":  author,
 	}
-	h.wsHub.Broadcast(msg)
+	jsonMsg, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Ошибка маршалинга сообщения: %v", err)
+	} else {
+		h.wsHub.Broadcast(jsonMsg)
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"author": author})
 }
@@ -117,8 +124,8 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /authors/{id} [delete]
 func (h *AuthorHandler) DeleteAuthor(c *gin.Context) {
-	id_in_type_Str := c.Param("id")
-	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
+	idInTypeStr := c.Param("id")
+	id, err := strconv.ParseUint(idInTypeStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id пустое"})
 		return

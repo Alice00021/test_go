@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"encoding/json"
 	"log"
+	"test_go/internal/entity"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -22,6 +24,11 @@ func NewClient(conn *websocket.Conn, hub *Hub) *Client {
 }
 
 func (c *Client) readPump() {
+	c.conn.SetPongHandler(func(string) error {
+		log.Printf("Pong received from client %p", c)
+		return nil
+	})
+
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -34,6 +41,13 @@ func (c *Client) readPump() {
 				log.Printf("error: %v", err)
 			}
 			break
+		}
+
+		var msg entity.Message
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			log.Printf("Invalid message format from client %p: %v", c, err)
+			continue
 		}
 		c.hub.broadcast <- message
 	}
@@ -69,4 +83,5 @@ func (c *Client) writePump() {
 			}
 		}
 	}
+
 }
