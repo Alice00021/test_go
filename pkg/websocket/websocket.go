@@ -1,12 +1,11 @@
-package controller
+package websocket
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"test_go/internal/service"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -22,10 +21,9 @@ type WebSocketHandler struct {
 	authService service.AuthorService
 }
 
-func NewWebSocketHandler(hub *Hub, authService service.UserService) *WebSocketHandler {
+func NewWebSocketHandler(hub *Hub) *WebSocketHandler {
 	return &WebSocketHandler{
-		hub:         hub,
-		authService: authService,
+		hub: hub,
 	}
 }
 

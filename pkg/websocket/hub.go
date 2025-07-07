@@ -1,4 +1,4 @@
-package controller
+package websocket
 
 import (
 	"encoding/json"

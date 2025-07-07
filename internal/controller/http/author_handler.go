@@ -1,8 +1,6 @@
 package http
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"test_go/internal/service"
@@ -51,17 +49,9 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	msg := "автор создан"
 
-	msg := map[string]interface{}{
-		"event": "author_created",
-		"data":  author,
-	}
-	jsonMsg, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("Ошибка маршалинга сообщения: %v", err)
-	} else {
-		h.wsHub.Broadcast(jsonMsg)
-	}
+	h.wsHub.Broadcast(msg)
 
 	c.JSON(http.StatusCreated, gin.H{"author": author})
 }

@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/swaggo/files"       // Файлы Swagger UI
+	"github.com/swaggo/gin-swagger" // Промежуточное ПО для Swagger
 	"log"
+	_ "test_go/docs" // Импорт сгенерированной документации Swagger
 	"test_go/internal/app"
-	"github.com/swaggo/files"          // Файлы Swagger UI
-	"github.com/swaggo/gin-swagger"   // Промежуточное ПО для Swagger
-	_ "test_go/docs"                  // Импорт сгенерированной документации Swagger
 )
 
 // @title Author API
@@ -24,4 +24,5 @@ func main() {
 	if err := app.Router.Run(":8080"); err != nil {
 		log.Fatalf("Не удалось запустить сервер: %v", err)
 	}
+	app.WsHub.Shutdown()
 }
