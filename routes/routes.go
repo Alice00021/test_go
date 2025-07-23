@@ -2,16 +2,16 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"test_go/internal/controller/http/v1"
 
-	"test_go/internal/controller/http"
 	"test_go/pkg/jwt"
 	"test_go/pkg/middleware"
 )
 
-func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandler *http.AuthorHandler, authHandler *http.AuthHandler, jwtManager *jwt.JWTManager){
+func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler *v1.AuthorHandler, authHandler *v1.AuthHandler, exelHandler *v1.ExportHandler, jwtManager *jwt.JWTManager) {
 	authGroup := router.Group("auth")
 
-	{	
+	{
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/login", authHandler.Login)
 	}
@@ -28,14 +28,14 @@ func SetUpRoutes(router *gin.Engine, bookHandler *http.BookHandler, authorHandle
 		api.DELETE("/authors/:id", authorHandler.DeleteAuthor)
 		api.GET("/authors/:id", authorHandler.GetAuthor)
 		api.GET("/authors", authorHandler.GetAllAuthors)
+		api.GET("/export/statistics", exelHandler.ExportBooksAndAuthorsToExel)
 	}
-	
+
 	authGroup.Use(middleware.AuthMiddleware(jwtManager))
-{
-	authGroup.GET("/profile/:id", authHandler.GetProfile)
-	authGroup.PATCH("/profile", authHandler.ChangePassword)
-	/* authGroup.POST("/logout", handler.Logout) */
-}
+	{
+		authGroup.GET("/profile/:id", authHandler.GetProfile)
+		authGroup.PATCH("/profile", authHandler.ChangePassword)
+		/* authGroup.POST("/logout", handler.Logout) */
+	}
 
 }
-

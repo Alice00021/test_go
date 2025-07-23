@@ -1,22 +1,20 @@
 package app
 
 import (
-	
 	"fmt"
 	"test_go/config"
 	"test_go/db"
-	"test_go/internal/controller/http"
+	"test_go/internal/controller/http/v1"
 	"test_go/internal/repo/pg"
-	"test_go/internal/service"
+	"test_go/internal/usecase"
+	"test_go/pkg/jwt"
 	/* "test_go/migrations" */
 	"test_go/routes"
-	"test_go/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
-
 )
 
-type App struct{
+type App struct {
 	Router *gin.Engine
 }
 
@@ -28,7 +26,6 @@ func NewApp() (*App, error) {
 	}
 	jwtManager := jwt.NewJWTManager(cfg.Jwt.SecretKey)
 
-
 	dbConn, err := db.Init_DB(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка инициализации базы данных: %w", err)
@@ -38,22 +35,23 @@ func NewApp() (*App, error) {
 	if err := migrations.RunMigrations(dbConn); err != nil {
 		return nil, fmt.Errorf("ошибка выполнения миграций: %w", err)
 	}
- */
+	*/
 	// Инициализация репозиториев
 	bookRepo := pg.NewBookRepo(dbConn)
 	authorRepo := pg.NewAuthorRepo(dbConn)
 	userRepo := pg.NewUserRepo(dbConn)
 	// Инициализация сервисов
-	bookSvc := service.NewBookService(bookRepo)
-	authorSvc := service.NewAuthorService(authorRepo)
-	userSvc := service.NewAuthService(userRepo, jwtManager)
+	bookSvc := usecase.NewBookService(bookRepo)
+	authorSvc := usecase.NewAuthorService(authorRepo)
+	userSvc := usecase.NewAuthService(userRepo, jwtManager)
 	// Инициализация обработчиков
-	bookHandler := http.NewBookHandler(bookSvc)
-	authorHandler := http.NewAuthorHandler(authorSvc)
-	authHandler := http.NewAuthHandler(userSvc)
+	bookHandler := v1.NewBookHandler(bookSvc)
+	authorHandler := v1.NewAuthorHandler(authorSvc)
+	authHandler := v1.NewAuthHandler(userSvc)
+	exelHandler := v1.NewExportHandler(authorSvc, bookSvc)
 	// Настройка маршрутов
 	router := gin.Default()
-	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler, jwtManager)
+	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler, exelHandler, jwtManager)
 
 	return &App{Router: router}, nil
 }

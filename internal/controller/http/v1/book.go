@@ -1,18 +1,18 @@
-package http
+package v1
 
 import (
 	"net/http"
 	"strconv"
-	"test_go/internal/service"
+	"test_go/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
-type BookHandler struct{
-	bookService service.BookService
+type BookHandler struct {
+	bookService usecase.BookService
 }
 
-func NewBookHandler(bookService service.BookService) *BookHandler{
+func NewBookHandler(bookService usecase.BookService) *BookHandler {
 	return &BookHandler{bookService: bookService}
 }
 
@@ -27,11 +27,11 @@ func NewBookHandler(bookService service.BookService) *BookHandler{
 // @Failure 400 {object} map[string]interface{} "неверный формат данных"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /books [post]
-func (h *BookHandler) CreateBook(c *gin.Context){
+func (h *BookHandler) CreateBook(c *gin.Context) {
 
 	var body struct {
-		Title      string   `json:"title" binding:"required"`
-		AuthorID   uint     `json:"authorID" binding:"required"`
+		Title    string `json:"title" binding:"required"`
+		AuthorID uint   `json:"authorID" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -43,18 +43,18 @@ func (h *BookHandler) CreateBook(c *gin.Context){
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
-	c.JSON(http.StatusCreated, gin.H{"book":book})
+
+	c.JSON(http.StatusCreated, gin.H{"book": book})
 }
 
 type UpdateBookRequest struct {
-	Title  string `json:"title" binding:"required"`
+	Title    string `json:"title" binding:"required"`
 	AuthorID uint   `json:"authorID"`
 }
 
 // UpdateBook обновляет существующую книгу
 // @Summary Обновить книгу
-// @Description Обновляет данные книги 
+// @Description Обновляет данные книги
 // @Tags books
 // @Accept json
 // @Produce json
@@ -65,7 +65,7 @@ type UpdateBookRequest struct {
 // @Failure 404 {object} map[string]interface{} "книга не найден"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /books/{id} [patch]
-func (h *BookHandler) UpdateBook(c *gin.Context){
+func (h *BookHandler) UpdateBook(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -103,7 +103,7 @@ func (h *BookHandler) UpdateBook(c *gin.Context){
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /books/{id} [delete]
-func (h *BookHandler) DeleteBook(c *gin.Context){
+func (h *BookHandler) DeleteBook(c *gin.Context) {
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
 	if err != nil {
@@ -111,15 +111,15 @@ func (h *BookHandler) DeleteBook(c *gin.Context){
 		return
 	}
 
-        if err := h.bookService.DeleteBook(c.Request.Context(), uint(id)); err!=nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	if err := h.bookService.DeleteBook(c.Request.Context(), uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-        c.JSON(http.StatusOK, gin.H{
-            "message": "Книга была удалена успешно",
-            "id":      id,
-        })
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Книга была удалена успешно",
+		"id":      id,
+	})
 }
 
 // GetBook получает книгу по ID
@@ -132,7 +132,7 @@ func (h *BookHandler) DeleteBook(c *gin.Context){
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 404 {object} map[string]interface{} "книга не найдена"
 // @Router /books/{id} [get]
-func (h *BookHandler) GetBook(c *gin.Context){
+func (h *BookHandler) GetBook(c *gin.Context) {
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
 	if err != nil {
@@ -140,10 +140,10 @@ func (h *BookHandler) GetBook(c *gin.Context){
 		return
 	}
 	book, err := h.bookService.GetByIDBook(c.Request.Context(), uint(id))
-	if err !=nil{
-		c.JSON(http.StatusNotFound, gin.H{"error":"Книга не найдена"})
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Книга не найдена"})
 	}
-		c.JSON(http.StatusOK, gin.H{"book": book})
+	c.JSON(http.StatusOK, gin.H{"book": book})
 }
 
 // GetAllBooks получает список всех книг
@@ -154,13 +154,11 @@ func (h *BookHandler) GetBook(c *gin.Context){
 // @Success 200 {object} map[string]interface{} "books: список книг"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /books [get]
-func (h *BookHandler) GetAllBooks(c *gin.Context){
+func (h *BookHandler) GetAllBooks(c *gin.Context) {
 	books, err := h.bookService.GetAllBooks(c.Request.Context())
-	if err!=nil{
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"books":books})
+	c.JSON(http.StatusOK, gin.H{"books": books})
 }
-
- 

@@ -1,18 +1,19 @@
-package http
+package v1
 
 import (
 	"net/http"
+	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/entity"
-	"test_go/internal/service"
+	"test_go/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	authService service.UserService
+	authService usecase.UserService
 }
 
-func NewAuthHandler(userService service.UserService) *AuthHandler {
+func NewAuthHandler(userService usecase.UserService) *AuthHandler {
 	return &AuthHandler{authService: userService}
 }
 
@@ -32,27 +33,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var credentials struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+	var req request.AuthenticateRequest
 
-	if err := c.ShouldBindJSON(&credentials); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	tokenPair, err := h.authService.Login(c.Request.Context(), credentials.Username, credentials.Password)
+	res, err := h.authService.Login(c.Request.Context(), req.Username, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"acess_token": tokenPair.AccessToken,
-		"refresh_token": tokenPair.RefreshToken,
-
-	})
+	c.JSON(http.StatusOK, res)
 }
 
 func (h *AuthHandler) GetProfile(c *gin.Context) {
@@ -69,8 +63,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	})
 }
 
-
-func (h *AuthHandler) ChangePassword(c * gin.Context){
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	var credentials struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
@@ -87,8 +80,7 @@ func (h *AuthHandler) ChangePassword(c * gin.Context){
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"acess_token": credentials.Username,
+		"acess_token":   credentials.Username,
 		"refresh_token": credentials.Password,
-
 	})
 }

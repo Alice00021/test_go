@@ -5,3 +5,7 @@
 .vscode/
 
 config.yaml
+
+my_key
+my_key.pub
+

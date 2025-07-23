@@ -1,18 +1,18 @@
-package http
+package v1
 
 import (
 	"net/http"
 	"strconv"
-	"test_go/internal/service"
+	"test_go/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
-type AuthorHandler struct{
-	authorService service.AuthorService
+type AuthorHandler struct {
+	authorService usecase.AuthorService
 }
 
-func NewAuthorHandler(authorService service.AuthorService) *AuthorHandler{
+func NewAuthorHandler(authorService usecase.AuthorService) *AuthorHandler {
 	return &AuthorHandler{authorService: authorService}
 }
 
@@ -27,7 +27,7 @@ func NewAuthorHandler(authorService service.AuthorService) *AuthorHandler{
 // @Failure 400 {object} map[string]interface{} "неверный формат данных"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /authors [post]
-func (h *AuthorHandler) CreateAuthor(c *gin.Context){
+func (h *AuthorHandler) CreateAuthor(c *gin.Context) {
 
 	var body struct {
 		Name   string `json:"name" binding:"required"`
@@ -44,8 +44,8 @@ func (h *AuthorHandler) CreateAuthor(c *gin.Context){
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
-	c.JSON(http.StatusCreated, gin.H{"author":author})
+
+	c.JSON(http.StatusCreated, gin.H{"author": author})
 }
 
 type UpdateAuthorRequest struct {
@@ -95,7 +95,6 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"update_author": author})
 }
 
-
 // DeleteAuthor удаляет автора по ID
 // @Summary Удалить автора
 // @Description Удаляет автора по указанному ID
@@ -106,7 +105,7 @@ func (h *AuthorHandler) UpdateAuthor(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /authors/{id} [delete]
-func (h *AuthorHandler) DeleteAuthor(c *gin.Context){
+func (h *AuthorHandler) DeleteAuthor(c *gin.Context) {
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
 	if err != nil {
@@ -114,15 +113,15 @@ func (h *AuthorHandler) DeleteAuthor(c *gin.Context){
 		return
 	}
 
-        if err := h.authorService.DeleteAuthor(c.Request.Context(), uint(id)); err!=nil{
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	if err := h.authorService.DeleteAuthor(c.Request.Context(), uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-        c.JSON(http.StatusOK, gin.H{
-            "message": "Автор был удален успешно",
-            "id":      id,
-        })
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Автор был удален успешно",
+		"id":      id,
+	})
 }
 
 // GetAuthor получает автора по ID
@@ -135,7 +134,7 @@ func (h *AuthorHandler) DeleteAuthor(c *gin.Context){
 // @Failure 400 {object} map[string]interface{} "id пустое"
 // @Failure 404 {object} map[string]interface{} "автор не найден"
 // @Router /authors/{id} [get]
-func (h *AuthorHandler) GetAuthor(c *gin.Context){
+func (h *AuthorHandler) GetAuthor(c *gin.Context) {
 	id_in_type_Str := c.Param("id")
 	id, err := strconv.ParseUint(id_in_type_Str, 10, 32)
 	if err != nil {
@@ -143,10 +142,10 @@ func (h *AuthorHandler) GetAuthor(c *gin.Context){
 		return
 	}
 	author, err := h.authorService.GetByIDAuthor(c.Request.Context(), uint(id))
-	if err !=nil{
-		c.JSON(http.StatusNotFound, gin.H{"error":"Автор не найден"})
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Автор не найден"})
 	}
-		c.JSON(http.StatusOK, gin.H{"author": author})
+	c.JSON(http.StatusOK, gin.H{"author": author})
 }
 
 // GetAllAuthors получает список всех авторов
@@ -157,18 +156,11 @@ func (h *AuthorHandler) GetAuthor(c *gin.Context){
 // @Success 200 {object} map[string]interface{} "authors: список авторов"
 // @Failure 500 {object} map[string]interface{} "ошибка сервера"
 // @Router /authors [get]
-func (h *AuthorHandler) GetAllAuthors(c *gin.Context){
+func (h *AuthorHandler) GetAllAuthors(c *gin.Context) {
 	books, err := h.authorService.GetAllAuthors(c.Request.Context())
-	if err!=nil{
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"authors":books})
+	c.JSON(http.StatusOK, gin.H{"authors": books})
 }
-
-
-
-
-
-
-
