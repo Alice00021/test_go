@@ -44,11 +44,12 @@ func NewApp() (*App, error) {
 	bookSvc := usecase.NewBookService(bookRepo)
 	authorSvc := usecase.NewAuthorService(authorRepo)
 	userSvc := usecase.NewAuthService(userRepo, jwtManager)
+	exportSvc := usecase.NewExportUseCase(authorSvc, bookSvc, "temp")
 	// Инициализация обработчиков
 	bookHandler := v1.NewBookHandler(bookSvc)
 	authorHandler := v1.NewAuthorHandler(authorSvc)
 	authHandler := v1.NewAuthHandler(userSvc)
-	exelHandler := v1.NewExportHandler(authorSvc, bookSvc)
+	exelHandler := v1.NewExportHandler(exportSvc)
 	// Настройка маршрутов
 	router := gin.Default()
 	routes.SetUpRoutes(router, bookHandler, authorHandler, authHandler, exelHandler, jwtManager)

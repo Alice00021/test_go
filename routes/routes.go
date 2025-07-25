@@ -28,7 +28,7 @@ func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler 
 		api.DELETE("/authors/:id", authorHandler.DeleteAuthor)
 		api.GET("/authors/:id", authorHandler.GetAuthor)
 		api.GET("/authors", authorHandler.GetAllAuthors)
-		api.GET("/export/statistics", exelHandler.ExportBooksAndAuthorsToExel)
+		api.GET("/export/statistics", exelHandler.GenerateExportFile)
 	}
 
 	authGroup.Use(middleware.AuthMiddleware(jwtManager))
