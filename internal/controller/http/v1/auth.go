@@ -18,7 +18,7 @@ func NewAuthHandler(userService usecase.UserService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var user entity.User
+	var user entity.UserInput
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -83,4 +83,37 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		"acess_token":   credentials.Username,
 		"refresh_token": credentials.Password,
 	})
+}
+
+func (h *AuthHandler) SetProfilePhoto(c *gin.Context) {
+	userIdAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userId, ok := userIdAny.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
+		return
+	}
+
+	// Получаем файл из формы
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	if file.Size > 5<<20 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File too large"})
+		return
+	}
+
+	err = h.authService.SetProfilePhoto(c.Request.Context(), userId, file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile photo updated successfully"})
 }

@@ -31,11 +31,12 @@ func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler 
 		api.GET("/export/statistics", exelHandler.GenerateExportFile)
 	}
 
-	authGroup.Use(middleware.AuthMiddleware(jwtManager))
+	protectedAuth := router.Group("/auth")
+	protectedAuth.Use(middleware.AuthMiddleware(jwtManager))
 	{
-		authGroup.GET("/profile/:id", authHandler.GetProfile)
-		authGroup.PATCH("/profile", authHandler.ChangePassword)
-		/* authGroup.POST("/logout", handler.Logout) */
+		protectedAuth.GET("/profile/:id", authHandler.GetProfile)
+		protectedAuth.PATCH("/profile", authHandler.ChangePassword)
+		protectedAuth.PUT("/photo", authHandler.SetProfilePhoto)
 	}
 
 }

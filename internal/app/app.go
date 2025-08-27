@@ -43,7 +43,7 @@ func NewApp() (*App, error) {
 	// Инициализация сервисов
 	bookSvc := usecase.NewBookService(bookRepo)
 	authorSvc := usecase.NewAuthorService(authorRepo)
-	userSvc := usecase.NewAuthService(userRepo, jwtManager)
+	userSvc := usecase.NewAuthService(userRepo, jwtManager, "storage")
 	exportSvc := usecase.NewExportUseCase(authorSvc, bookSvc, "temp")
 	// Инициализация обработчиков
 	bookHandler := v1.NewBookHandler(bookSvc)
