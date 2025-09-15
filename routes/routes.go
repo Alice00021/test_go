@@ -14,6 +14,7 @@ func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler 
 	{
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/login", authHandler.Login)
+		authGroup.GET("/verify", authHandler.VerifyEmail)
 	}
 	api := router.Group("/api")
 	{
@@ -35,7 +36,7 @@ func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler 
 	protectedAuth.Use(middleware.AuthMiddleware(jwtManager))
 	{
 		protectedAuth.GET("/profile/:id", authHandler.GetProfile)
-		protectedAuth.PATCH("/profile", authHandler.ChangePassword)
+		protectedAuth.PATCH("/change-password", authHandler.ChangePassword)
 		protectedAuth.PUT("/photo", authHandler.SetProfilePhoto)
 	}
 

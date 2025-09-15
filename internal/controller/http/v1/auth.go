@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"net/http"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/entity"
@@ -42,7 +43,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	res, err := h.authService.Login(c.Request.Context(), req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		switch {
+		case errors.Is(err, entity.ErrEmailNotVerified):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case errors.Is(err, entity.ErrAccessDenied):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 
@@ -64,25 +72,32 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 }
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	var credentials struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+	var req request.ChangePasswordRequest
+
+	userIdAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userId, ok := userIdAny.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
+		return
 	}
 
-	if err := c.ShouldBindJSON(&credentials); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.authService.ChangePassword(c.Request.Context(), credentials.Username, credentials.Password)
+	err := h.authService.ChangePassword(c.Request.Context(), userId,
+		req.OldPassword, req.NewPassword, req.ConfirmPassword)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "can`t change password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"acess_token":   credentials.Username,
-		"refresh_token": credentials.Password,
-	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "пароль успешно изменен"})
 }
 
 func (h *AuthHandler) SetProfilePhoto(c *gin.Context) {
@@ -116,4 +131,19 @@ func (h *AuthHandler) SetProfilePhoto(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile photo updated successfully"})
+}
+
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Verification token is required"})
+		return
+	}
+
+	if err := h.authService.VerifyEmail(c.Request.Context(), token); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
 }

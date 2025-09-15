@@ -1,0 +1,19 @@
+meta {
+  name: verify email
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8080/auth/verify?token=335de05bfa8dc9b7317e6ad0fcaf44ad
+  body: none
+  auth: inherit
+}
+
+params:query {
+  token: 335de05bfa8dc9b7317e6ad0fcaf44ad
+}
+
+settings {
+  encodeUrl: true
+}

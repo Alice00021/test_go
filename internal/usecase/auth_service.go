@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +15,8 @@ import (
 	"test_go/internal/repo"
 	"test_go/pkg/auth"
 	"test_go/pkg/jwt"
+
+	"gopkg.in/gomail.v2"
 )
 
 type TokenPair struct {
@@ -27,8 +31,9 @@ type UserService interface {
 	UpdateUser(context.Context, *entity.User) error
 	GetByUserName(context.Context, string) (*entity.User, error)
 	GetAllUsers(context.Context) ([]entity.User, error)
-	ChangePassword(context.Context, string, string) error
+	ChangePassword(context.Context, uint, string, string, string) error
 	SetProfilePhoto(context.Context, uint, *multipart.FileHeader) error
+	VerifyEmail(context.Context, string) error
 	/* 	Logout(ctx context.Context, username string, password string) error */
 }
 
@@ -36,20 +41,33 @@ type userUseCase struct {
 	userRepo        repo.UserRepository
 	jwtManager      *jwt.JWTManager
 	storageBasePath string
+	emailConfig     *entity.EmailConfig
 }
 
-func NewAuthService(userRepo repo.UserRepository, jwtManager *jwt.JWTManager, sbp string) UserService {
+func NewAuthService(userRepo repo.UserRepository, jwtManager *jwt.JWTManager, sbp string, emailConfig *entity.EmailConfig) UserService {
 	return &userUseCase{
 		userRepo:        userRepo,
 		jwtManager:      jwtManager,
 		storageBasePath: sbp,
+		emailConfig:     emailConfig,
 	}
 }
 
 func (s *userUseCase) Register(ctx context.Context, inp *entity.UserInput) error {
+	existingUserByEmail, err := s.userRepo.GetByEmail(ctx, inp.Email)
+	if err == nil && existingUserByEmail != nil {
+		return errors.New("email already exists")
+	}
+
+	verifyToken, err := generateVerifyToken()
+	if err != nil {
+		return fmt.Errorf("failed to generate verify token: %v", err)
+	}
+
 	e := entity.NewUser(
-		inp.Name, inp.Surname, inp.Username, inp.Password,
+		inp.Name, inp.Surname, inp.Username, inp.Password, inp.Email,
 	)
+	e.VerifyToken = &verifyToken
 
 	hashedPassword, err := auth.HashPassword(e.Password)
 	if err != nil {
@@ -57,13 +75,25 @@ func (s *userUseCase) Register(ctx context.Context, inp *entity.UserInput) error
 	}
 
 	e.Password = hashedPassword
-	return s.userRepo.Create(ctx, e)
+
+	if err := s.userRepo.Create(ctx, e); err != nil {
+		return err
+	}
+
+	if err := s.sendVerificationEmail(e.Email, verifyToken); err != nil {
+		return fmt.Errorf("failed to send verification email: %v", err)
+	}
+
+	return nil
 }
 
 func (s *userUseCase) Login(ctx context.Context, username string, password string) (*TokenPair, error) {
 	user, err := s.userRepo.GetByUserName(ctx, username)
 	if err != nil {
 		return nil, errors.New("invalid credentials")
+	}
+	if !user.IsVerified {
+		return nil, entity.ErrEmailNotVerified
 	}
 
 	if !auth.CheckPasswordHash(password, user.Password) {
@@ -125,16 +155,25 @@ func (s *userUseCase) RefreshTokens(ctx context.Context, refreshToken string) (*
 	}, nil
 }
 
-func (s *userUseCase) ChangePassword(ctx context.Context, username string, newpassword string) error {
-	user, err := s.userRepo.GetByUserName(ctx, username)
+func (s *userUseCase) ChangePassword(ctx context.Context, id uint, oldPassword, newpassword, confirmPassword string) error {
+	if newpassword != confirmPassword {
+		return errors.New("newPassword and confirmPassword must be the same")
+	}
+
+	user, err := s.userRepo.GetById(ctx, id)
 	if err != nil {
 		return errors.New("user not found")
 	}
-	hashedPassword, err := auth.HashPassword(newpassword)
 
+	if !auth.CheckPasswordHash(oldPassword, user.Password) {
+		return errors.New("error change password")
+	}
+
+	hashedPassword, err := auth.HashPassword(newpassword)
 	if err != nil {
 		return err
 	}
+
 	user.Password = hashedPassword
 	return s.userRepo.Update(ctx, user)
 
@@ -186,6 +225,41 @@ func (s *userUseCase) SetProfilePhoto(ctx context.Context, id uint, file *multip
 		return fmt.Errorf("failed to update user profile photo: %v", err)
 	}
 	return nil
+}
+
+func (s *userUseCase) VerifyEmail(ctx context.Context, token string) error {
+	user, err := s.userRepo.GetByVerifyToken(ctx, token)
+	if err != nil {
+		return errors.New("invalid verification token")
+	}
+
+	user.IsVerified = true
+	user.VerifyToken = nil
+	return s.userRepo.Update(ctx, user)
+}
+
+func generateVerifyToken() (string, error) {
+	bytes := make([]byte, 16)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+func (s *userUseCase) sendVerificationEmail(email, token string) error {
+	message := gomail.NewMessage()
+	message.SetHeader("From", s.emailConfig.SenderEmail)
+	message.SetHeader("To", email)
+	message.SetHeader("Subject", "Email Verification")
+
+	verificationLink := fmt.Sprintf("http://localhost:8080/auth/verify?token=%s", token)
+	body := fmt.Sprintf("Please verify your email by clicking the following link: %s", verificationLink)
+	message.SetBody("text/plain", body)
+
+	d := gomail.NewDialer(s.emailConfig.SMTPHost, s.emailConfig.SMTPPort, s.emailConfig.SenderEmail, s.emailConfig.SenderPassword)
+
+	return d.DialAndSend(message)
 }
 
 /* func (s *userUseCase) Logout(){

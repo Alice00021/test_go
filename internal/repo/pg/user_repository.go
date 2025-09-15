@@ -47,3 +47,19 @@ func (r *UserRepo) GetById(ctx context.Context, id uint) (*entity.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
+	var user entity.User
+	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepo) GetByVerifyToken(ctx context.Context, token string) (*entity.User, error) {
+	var user entity.User
+	if err := r.db.WithContext(ctx).Where("verify_token = ?", token).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

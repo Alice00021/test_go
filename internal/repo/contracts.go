@@ -7,19 +7,19 @@ import (
 )
 
 type BookRepository interface {
-	Create(ctx context.Context, book *entity.Book) error
-	Update(ctx context.Context, book *entity.Book, id uint) error
-	Delete(ctx context.Context, id uint) error
-	GetByID(ctx context.Context, id uint) (*entity.Book, error)
-	GetAll(ctx context.Context) ([]entity.Book, error)
+	Create(context.Context, *entity.Book) error
+	Update(context.Context, *entity.Book, uint) error
+	Delete(context.Context, uint) error
+	GetByID(context.Context, uint) (*entity.Book, error)
+	GetAll(context.Context) ([]entity.Book, error)
 }
 
 type AuthorRepository interface {
-	Create(ctx context.Context, author *entity.Author) error
-	Update(ctx context.Context, author *entity.Author, id uint) error
-	Delete(ctx context.Context, id uint) error
-	GetByID(ctx context.Context, id uint) (*entity.Author, error)
-	GetAll(ctx context.Context) ([]entity.Author, error)
+	Create(context.Context, *entity.Author) error
+	Update(context.Context, *entity.Author, uint) error
+	Delete(context.Context, uint) error
+	GetByID(context.Context, uint) (*entity.Author, error)
+	GetAll(context.Context) ([]entity.Author, error)
 }
 
 type UserRepository interface {
@@ -28,4 +28,6 @@ type UserRepository interface {
 	GetByUserName(context.Context, string) (*entity.User, error)
 	GetById(context.Context, uint) (*entity.User, error)
 	GetAll(context.Context) ([]entity.User, error)
+	GetByEmail(context.Context, string) (*entity.User, error)
+	GetByVerifyToken(context.Context, string) (*entity.User, error)
 }

@@ -5,6 +5,7 @@ import (
 	"test_go/config"
 	"test_go/db"
 	"test_go/internal/controller/http/v1"
+	"test_go/internal/entity"
 	"test_go/internal/repo/pg"
 	"test_go/internal/usecase"
 	"test_go/pkg/jwt"
@@ -43,7 +44,13 @@ func NewApp() (*App, error) {
 	// Инициализация сервисов
 	bookSvc := usecase.NewBookService(bookRepo)
 	authorSvc := usecase.NewAuthorService(authorRepo)
-	userSvc := usecase.NewAuthService(userRepo, jwtManager, "storage")
+	userSvc := usecase.NewAuthService(userRepo, jwtManager, "storage", &entity.EmailConfig{
+		SMTPHost:       cfg.SMTP.Host,
+		SMTPPort:       cfg.SMTP.Port,
+		SenderEmail:    cfg.SMTP.Email,
+		SenderPassword: cfg.SMTP.Password,
+	})
+
 	exportSvc := usecase.NewExportUseCase(authorSvc, bookSvc, "temp")
 	// Инициализация обработчиков
 	bookHandler := v1.NewBookHandler(bookSvc)
