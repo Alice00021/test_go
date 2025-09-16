@@ -14,6 +14,7 @@ type User struct {
 	IsVerified  bool
 	VerifyToken *string
 	FilePath    *string
+	Rating      float32
 }
 
 type UserInput struct {
@@ -40,4 +41,8 @@ type EmailConfig struct {
 	SMTPPort       int
 	SenderEmail    string
 	SenderPassword string
+}
+
+type UpdateRatingInput struct {
+	Rating float32 `json:"rating" validate:"required"`
 }

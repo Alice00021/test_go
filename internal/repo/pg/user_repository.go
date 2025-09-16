@@ -63,3 +63,7 @@ func (r *UserRepo) GetByVerifyToken(ctx context.Context, token string) (*entity.
 	}
 	return &user, nil
 }
+
+func (r *UserRepo) UpdateRating(ctx context.Context, id uint, rating float32) error {
+	return r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", id).Update("rating", rating).Error
+}

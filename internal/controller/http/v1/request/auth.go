@@ -10,3 +10,7 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"newPassword" validate:"required"`
 	ConfirmPassword string `json:"confirmPassword" validate:"required"`
 }
+
+type UpdateRatingRequest struct {
+	Rating float32 `json:"rating" validate:"required" min:"0" max:"100"`
+}

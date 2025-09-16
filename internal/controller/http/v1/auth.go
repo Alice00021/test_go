@@ -2,12 +2,15 @@ package v1
 
 import (
 	"errors"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"math"
 	"net/http"
+	"strconv"
+	"sync"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/entity"
 	"test_go/internal/usecase"
-
-	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
@@ -74,6 +77,11 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	var req request.ChangePasswordRequest
 
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	userIdAny, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -82,11 +90,6 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	userId, ok := userIdAny.(uint)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
-		return
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -146,4 +149,71 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+}
+
+func (h *AuthHandler) UpdateRating(c *gin.Context) {
+	var req request.UpdateRatingRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	if err := h.authService.UpdateRating(c.Request.Context(), uint(id), req.Rating); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *AuthHandler) SimulateConcurrentUpdates(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	numGoroutines := 2
+	deltas := []float32{15.0, 30.0}
+
+	var wg sync.WaitGroup
+	ctx := c.Request.Context()
+
+	for i := 0; i < numGoroutines; i++ {
+		delta := deltas[i]
+		wg.Add(1)
+		go func(d float32) {
+			defer wg.Done()
+			if err := h.authService.UpdateRating(ctx, uint(id), d); err != nil {
+				fmt.Printf("Ошибка в горутине: %v", err)
+			}
+		}(delta)
+	}
+	wg.Wait()
+
+	// Читаем финальный рейтинг для проверки
+	user, err := h.authService.GetUserById(ctx, uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	expectedRating := math.Max(float64(deltas[0]), float64(deltas[1]))
+	actualRating := user.Rating
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":         "Тест завершён",
+		"expected_rating": expectedRating,
+		"actual_rating":   actualRating,
+		"lost_updates":    expectedRating - float64(actualRating),
+	})
 }

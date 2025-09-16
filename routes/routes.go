@@ -38,6 +38,8 @@ func SetUpRoutes(router *gin.Engine, bookHandler *v1.BookHandler, authorHandler 
 		protectedAuth.GET("/profile/:id", authHandler.GetProfile)
 		protectedAuth.PATCH("/change-password", authHandler.ChangePassword)
 		protectedAuth.PUT("/photo", authHandler.SetProfilePhoto)
+		protectedAuth.PATCH("/:id/rating", authHandler.UpdateRating)
+		protectedAuth.PATCH("/:id/concurrent-test", authHandler.SimulateConcurrentUpdates)
 	}
 
 }

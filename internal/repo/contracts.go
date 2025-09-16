@@ -30,4 +30,5 @@ type UserRepository interface {
 	GetAll(context.Context) ([]entity.User, error)
 	GetByEmail(context.Context, string) (*entity.User, error)
 	GetByVerifyToken(context.Context, string) (*entity.User, error)
+	UpdateRating(context.Context, uint, float32) error
 }

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"test_go/internal/entity"
 	"test_go/internal/repo"
 	"test_go/pkg/auth"
@@ -31,9 +32,11 @@ type UserService interface {
 	UpdateUser(context.Context, *entity.User) error
 	GetByUserName(context.Context, string) (*entity.User, error)
 	GetAllUsers(context.Context) ([]entity.User, error)
+	GetUserById(context.Context, uint) (*entity.User, error)
 	ChangePassword(context.Context, uint, string, string, string) error
 	SetProfilePhoto(context.Context, uint, *multipart.FileHeader) error
 	VerifyEmail(context.Context, string) error
+	UpdateRating(context.Context, uint, float32) error
 	/* 	Logout(ctx context.Context, username string, password string) error */
 }
 
@@ -42,14 +45,16 @@ type userUseCase struct {
 	jwtManager      *jwt.JWTManager
 	storageBasePath string
 	emailConfig     *entity.EmailConfig
+	mtx             *sync.Mutex
 }
 
-func NewAuthService(userRepo repo.UserRepository, jwtManager *jwt.JWTManager, sbp string, emailConfig *entity.EmailConfig) UserService {
+func NewAuthService(userRepo repo.UserRepository, jwtManager *jwt.JWTManager, sbp string, emailConfig *entity.EmailConfig, mtx *sync.Mutex) UserService {
 	return &userUseCase{
 		userRepo:        userRepo,
 		jwtManager:      jwtManager,
 		storageBasePath: sbp,
 		emailConfig:     emailConfig,
+		mtx:             &sync.Mutex{},
 	}
 }
 
@@ -68,6 +73,8 @@ func (s *userUseCase) Register(ctx context.Context, inp *entity.UserInput) error
 		inp.Name, inp.Surname, inp.Username, inp.Password, inp.Email,
 	)
 	e.VerifyToken = &verifyToken
+
+	e.Rating = 50
 
 	hashedPassword, err := auth.HashPassword(e.Password)
 	if err != nil {
@@ -118,6 +125,9 @@ func (s *userUseCase) Login(ctx context.Context, username string, password strin
 
 func (s *userUseCase) GetByUserName(ctx context.Context, username string) (*entity.User, error) {
 	return s.userRepo.GetByUserName(ctx, username)
+}
+func (s *userUseCase) GetUserById(ctx context.Context, id uint) (*entity.User, error) {
+	return s.userRepo.GetById(ctx, id)
 }
 
 func (s *userUseCase) UpdateUser(ctx context.Context, user *entity.User) error {
@@ -236,6 +246,28 @@ func (s *userUseCase) VerifyEmail(ctx context.Context, token string) error {
 	user.IsVerified = true
 	user.VerifyToken = nil
 	return s.userRepo.Update(ctx, user)
+}
+
+func (s *userUseCase) UpdateRating(ctx context.Context, id uint, rating float32) error {
+	//user, err := s.GetUserById(ctx, id)
+	//if err != nil {
+	//	return err
+	//}
+	//newRating := user.Rating + rating
+
+	//if newRating > 100 {
+	//	newRating = 100
+	//} else if newRating < 0 {
+	//	newRating = 0
+	//}
+
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	err := s.userRepo.UpdateRating(ctx, id, rating)
+	if err != nil {
+		return fmt.Errorf("Usecase: failed to update rating: %v", err)
+	}
+	return nil
 }
 
 func generateVerifyToken() (string, error) {

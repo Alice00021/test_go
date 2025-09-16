@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"sync"
 	"test_go/config"
 	"test_go/db"
 	"test_go/internal/controller/http/v1"
@@ -37,6 +38,7 @@ func NewApp() (*App, error) {
 		return nil, fmt.Errorf("ошибка выполнения миграций: %w", err)
 	}
 	*/
+	txMtx := &sync.Mutex{}
 	// Инициализация репозиториев
 	bookRepo := pg.NewBookRepo(dbConn)
 	authorRepo := pg.NewAuthorRepo(dbConn)
@@ -49,7 +51,7 @@ func NewApp() (*App, error) {
 		SMTPPort:       cfg.SMTP.Port,
 		SenderEmail:    cfg.SMTP.Email,
 		SenderPassword: cfg.SMTP.Password,
-	})
+	}, txMtx)
 
 	exportSvc := usecase.NewExportUseCase(authorSvc, bookSvc, "temp")
 	// Инициализация обработчиков
