@@ -1,4 +1,3 @@
-/* интерфейсы для репозиториев */
 package repo
 
 import (
@@ -6,29 +5,30 @@ import (
 	"test_go/internal/entity"
 )
 
-type BookRepository interface {
-	Create(context.Context, *entity.Book) error
-	Update(context.Context, *entity.Book, uint) error
-	Delete(context.Context, uint) error
-	GetByID(context.Context, uint) (*entity.Book, error)
-	GetAll(context.Context) ([]entity.Book, error)
-}
+type (
+	UserRepo interface {
+		Create(context.Context, *entity.User) (*entity.User, error)
+		GetById(context.Context, int64) (*entity.User, error)
+		Update(context.Context, *entity.User) error
+		GetByUserName(context.Context, string) (*entity.User, error)
+		GetAll(context.Context, entity.FilterUserInput) ([]*entity.User, error)
+		GetByEmail(context.Context, string) (*entity.User, error)
+		GetByVerifyToken(context.Context, string) (*entity.User, error)
+	}
 
-type AuthorRepository interface {
-	Create(context.Context, *entity.Author) error
-	Update(context.Context, *entity.Author, uint) error
-	Delete(context.Context, uint) error
-	GetByID(context.Context, uint) (*entity.Author, error)
-	GetAll(context.Context) ([]entity.Author, error)
-}
+	AuthorRepo interface {
+		Create(context.Context, *entity.Author) (*entity.Author, error)
+		GetById(context.Context, int64) (*entity.Author, error)
+		Update(context.Context, *entity.Author) error
+		GetAll(context.Context) ([]*entity.Author, error)
+		DeleteById(context.Context, int64) error
+	}
 
-type UserRepository interface {
-	Create(context.Context, *entity.User) error
-	Update(context.Context, *entity.User) error
-	GetByUserName(context.Context, string) (*entity.User, error)
-	GetById(context.Context, uint) (*entity.User, error)
-	GetAll(context.Context) ([]entity.User, error)
-	GetByEmail(context.Context, string) (*entity.User, error)
-	GetByVerifyToken(context.Context, string) (*entity.User, error)
-	UpdateRating(context.Context, uint, float32) error
-}
+	BookRepo interface {
+		Create(context.Context, *entity.Book) (*entity.Book, error)
+		GetById(context.Context, int64) (*entity.Book, error)
+		Update(context.Context, *entity.Book) error
+		GetAll(context.Context) ([]*entity.Book, error)
+		DeleteById(context.Context, int64) error
+	}
+)

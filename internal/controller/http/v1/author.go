@@ -3,16 +3,16 @@ package v1
 import (
 	"net/http"
 	"strconv"
-	"test_go/internal/usecase"
+	"test_go/internal/usecase/author"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthorHandler struct {
-	authorService usecase.AuthorService
+	authorService author.AuthorService
 }
 
-func NewAuthorHandler(authorService usecase.AuthorService) *AuthorHandler {
+func NewAuthorHandler(authorService author.AuthorService) *AuthorHandler {
 	return &AuthorHandler{authorService: authorService}
 }
 

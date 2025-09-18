@@ -1,16 +1,26 @@
 package entity
 
-import (
-	/* "errors"
-	"fmt" */
-
-	"gorm.io/gorm"
-)
-
 type Book struct {
-	gorm.Model
+	Entity
 	Title    string
-	AuthorID uint
+	AuthorId int64
 	Author   Author
-	pageSize uint
+}
+
+type CreateBookInput struct {
+	Title    string `json:"name"`
+	AuthorId int64  `json:"author_id"`
+}
+
+type UpdateBookInput struct {
+	ID       int64  `json:"id"`
+	Title    string `json:"name"`
+	AuthorId int64  `json:"author_id"`
+}
+
+func NewBook(title string, authorId int64) *Book {
+	return &Book{
+		Title:    title,
+		AuthorId: authorId,
+	}
 }

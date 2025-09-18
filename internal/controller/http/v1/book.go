@@ -3,16 +3,16 @@ package v1
 import (
 	"net/http"
 	"strconv"
-	"test_go/internal/usecase"
+	"test_go/internal/usecase/book"
 
 	"github.com/gin-gonic/gin"
 )
 
 type BookHandler struct {
-	bookService usecase.BookService
+	bookService book.BookService
 }
 
-func NewBookHandler(bookService usecase.BookService) *BookHandler {
+func NewBookHandler(bookService book.BookService) *BookHandler {
 	return &BookHandler{bookService: bookService}
 }
 

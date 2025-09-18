@@ -5,9 +5,19 @@ meta {
 }
 
 patch {
-  url: http://localhost:8080/auth//rating
-  body: none
+  url: http://localhost:8080/auth/13/rating
+  body: json
   auth: inherit
+}
+
+headers {
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMywidXNlcm5hbWUiOiJhbGljZV9iYXJ5c2hldmEiLCJleHAiOjE3NTgwMjYyMzV9.SKw-bfYWslBTZaqbiiosCQRSYuPeEw6sBDOoOia2KyE
+}
+
+body:json {
+  {
+    "rating": 10
+  }
 }
 
 settings {

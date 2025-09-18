@@ -4,20 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"math"
 	"net/http"
 	"strconv"
 	"sync"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/entity"
-	"test_go/internal/usecase"
+	"test_go/internal/usecase/user"
 )
 
 type AuthHandler struct {
-	authService usecase.UserService
+	authService user.UserService
 }
 
-func NewAuthHandler(userService usecase.UserService) *AuthHandler {
+func NewAuthHandler(userService user.UserService) *AuthHandler {
 	return &AuthHandler{authService: userService}
 }
 
@@ -207,13 +206,10 @@ func (h *AuthHandler) SimulateConcurrentUpdates(c *gin.Context) {
 		return
 	}
 
-	expectedRating := math.Max(float64(deltas[0]), float64(deltas[1]))
 	actualRating := user.Rating
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":         "Тест завершён",
-		"expected_rating": expectedRating,
-		"actual_rating":   actualRating,
-		"lost_updates":    expectedRating - float64(actualRating),
+		"message":       "Тест завершён",
+		"actual_rating": actualRating,
 	})
 }

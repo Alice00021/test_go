@@ -1,11 +1,7 @@
 package entity
 
-import (
-	"gorm.io/gorm"
-)
-
 type User struct {
-	gorm.Model
+	Entity
 	Name        string
 	Surname     string
 	Username    string
@@ -17,12 +13,25 @@ type User struct {
 	Rating      float32
 }
 
-type UserInput struct {
-	Name     string `json:"name" validate:"required"`
-	Surname  string `json:"surname" validate:"required"`
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type CreateUserInput struct {
+	Name     string `json:"name"`
+	Surname  string `json:"surname"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
+}
+
+type UpdateUserInput struct {
+	ID       int64   `json:"id"`
+	Name     string  `json:"name"`
+	Surname  string  `json:"surname"`
+	Username string  `json:"username"`
+	Rating   float32 `json:"rating"`
 }
 
 func NewUser(name, surname, username, password, email string) *User {
@@ -43,6 +52,6 @@ type EmailConfig struct {
 	SenderPassword string
 }
 
-type UpdateRatingInput struct {
-	Rating float32 `json:"rating" validate:"required"`
+type FilterUserInput struct {
+	IsVerified *bool `json:"is_verified"`
 }

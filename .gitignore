@@ -11,3 +11,7 @@ my_key.pub
 .storage/
 
 config/config.yaml
+
+./temp
+
+./test-go

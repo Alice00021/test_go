@@ -1,4 +1,4 @@
-package usecase
+package export
 
 import (
 	"context"
@@ -6,45 +6,46 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"test_go/internal/usecase"
+	"test_go/pkg/logger"
 	"time"
 )
 
-type ExportUseCase interface {
-	GenerateExcelFile(context.Context) (*excelize.File, error)
-	SaveToFile(*excelize.File) (string, error)
-}
-
-type exportUseCase struct {
-	authorService AuthorService
-	bookService   BookService
+type useCase struct {
+	authorService usecase.Author
+	bookService   usecase.Book
+	l             logger.Interface
 	exportPath    string
 }
 
-func NewExportUseCase(authorService AuthorService, bookService BookService, exportPath string) ExportUseCase {
+func New(
+	aUc usecase.Author,
+	bUc usecase.Book,
+	l logger.Interface,
+	exportPath string,
+) *useCase {
 	if err := os.MkdirAll(exportPath, 0755); err != nil {
 		return nil
 	}
-	return &exportUseCase{
-		authorService: authorService,
-		bookService:   bookService,
-		exportPath:    exportPath,
+	return &useCase{
+		aUc, bUc, l, exportPath,
 	}
 }
 
-func (uc *exportUseCase) GenerateExcelFile(ctx context.Context) (*excelize.File, error) {
-	authors, err := uc.authorService.GetAllAuthors(ctx)
+func (uc *useCase) GenerateExcelFile(ctx context.Context) (*excelize.File, error) {
+	authors, err := uc.authorService.GetAuthors(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	books, err := uc.bookService.GetAllBooks(ctx)
+	books, err := uc.bookService.GetBooks(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	bookCount := make(map[uint]int)
+	bookCount := make(map[int64]int)
 	for _, book := range books {
-		bookCount[book.AuthorID]++
+		bookCount[book.AuthorId]++
 	}
 	f := excelize.NewFile()
 
@@ -86,7 +87,7 @@ func (uc *exportUseCase) GenerateExcelFile(ctx context.Context) (*excelize.File,
 	return f, nil
 }
 
-func (uc *exportUseCase) SaveToFile(f *excelize.File) (string, error) {
+func (uc *useCase) SaveToFile(f *excelize.File) (string, error) {
 	fileName := "export_" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
 	filePath := filepath.Join(uc.exportPath, fileName)
 	if err := f.SaveAs(filePath); err != nil {

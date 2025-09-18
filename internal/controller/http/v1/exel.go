@@ -3,14 +3,14 @@ package v1
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"test_go/internal/usecase"
+	"test_go/internal/usecase/export"
 )
 
 type ExportHandler struct {
-	exportUC usecase.ExportUseCase
+	exportUC export.ExportUseCase
 }
 
-func NewExportHandler(exportUC usecase.ExportUseCase) *ExportHandler {
+func NewExportHandler(exportUC export.ExportUseCase) *ExportHandler {
 	return &ExportHandler{exportUC: exportUC}
 }
 
