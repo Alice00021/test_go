@@ -1,6 +1,7 @@
 package di
 
 import (
+	"sync"
 	"test_go/config"
 	"test_go/internal/usecase"
 	"test_go/internal/usecase/author"
@@ -13,9 +14,10 @@ import (
 )
 
 type UseCase struct {
-	User   usecase.UserUseCase
-	Book   usecase.BookUseCase
-	Author usecase.AuthorService
+	User   usecase.User
+	Book   usecase.Book
+	Author usecase.Author
+	Export usecase.Export
 }
 
 func NewUseCase(
@@ -25,8 +27,15 @@ func NewUseCase(
 	conf *config.Config,
 	jwtManager *jwt.JWTManager,
 ) *UseCase {
+	txMtx := &sync.Mutex{}
+	userUc := user.New(t, l, repo.UserRepo, jwtManager, conf.LocalFileStorage.BasePath, &conf.EmailConfig, txMtx)
 	authorUc := author.New(t, repo.AuthorRepo, l)
+	bookUc := book.New(t, repo.BookRepo, l)
+	exportUc := export.New(authorUc, bookUc, l, conf.LocalFileStorage.ExportPath)
 	return &UseCase{
 		Author: authorUc,
+		Book:   bookUc,
+		User:   userUc,
+		Export: exportUc,
 	}
 }

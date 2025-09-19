@@ -4,7 +4,6 @@ type Author struct {
 	Entity
 	Name   string
 	Gender bool
-	Books  []Book
 }
 
 type CreateAuthorInput struct {

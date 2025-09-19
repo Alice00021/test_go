@@ -2,6 +2,7 @@ package export
 
 import (
 	"context"
+	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
 	"path/filepath"
@@ -12,10 +13,10 @@ import (
 )
 
 type useCase struct {
-	authorService usecase.Author
-	bookService   usecase.Book
-	l             logger.Interface
-	exportPath    string
+	auс        usecase.Author
+	buc        usecase.Book
+	l          logger.Interface
+	exportPath string
 }
 
 func New(
@@ -33,14 +34,14 @@ func New(
 }
 
 func (uc *useCase) GenerateExcelFile(ctx context.Context) (*excelize.File, error) {
-	authors, err := uc.authorService.GetAuthors(ctx)
+	authors, err := uc.auс.GetAuthors(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ExportUseCase - GenerateExcelFile - uc.auс.GetAuthors: %w", err)
 	}
 
-	books, err := uc.bookService.GetBooks(ctx)
+	books, err := uc.buc.GetBooks(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ExportUseCase - GenerateExcelFile - uc.buc.GetBooks: %w", err)
 	}
 
 	bookCount := make(map[int64]int)

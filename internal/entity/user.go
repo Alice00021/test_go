@@ -33,6 +33,12 @@ type UpdateUserInput struct {
 	Username string  `json:"username"`
 	Rating   float32 `json:"rating"`
 }
+type ChangePasswordInput struct {
+	ID              int64  `json:"id"`
+	OldPassword     string `json:"oldPassword"`
+	NewPassword     string `json:"newPassword"`
+	ConfirmPassword string `json:"confirmPassword"`
+}
 
 func NewUser(name, surname, username, password, email string) *User {
 	return &User{
@@ -43,13 +49,6 @@ func NewUser(name, surname, username, password, email string) *User {
 		Email:      email,
 		IsVerified: false,
 	}
-}
-
-type EmailConfig struct {
-	SMTPHost       string
-	SMTPPort       int
-	SenderEmail    string
-	SenderPassword string
 }
 
 type FilterUserInput struct {

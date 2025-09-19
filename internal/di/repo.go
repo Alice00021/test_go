@@ -1,8 +1,6 @@
 package di
 
 import (
-	"gorm.io/gorm"
-
 	"test_go/internal/repo"
 	"test_go/internal/repo/persistent"
 	"test_go/pkg/postgres"

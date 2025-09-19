@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"test_go/config"
 	"test_go/internal/entity"
 	"test_go/internal/repo"
 	"test_go/pkg/auth"
@@ -28,7 +29,7 @@ type useCase struct {
 	repo            repo.UserRepo
 	jwtManager      *jwt.JWTManager
 	storageBasePath string
-	emailConfig     *entity.EmailConfig
+	emailConfig     *config.EmailConfig
 	mtx             *sync.Mutex
 }
 
@@ -37,7 +38,7 @@ func New(t transactional.Transactional,
 	repo repo.UserRepo,
 	jwtManager *jwt.JWTManager,
 	sbp string,
-	emailConfig *entity.EmailConfig,
+	emailConfig *config.EmailConfig,
 	mtx *sync.Mutex,
 ) *useCase {
 	return &useCase{
@@ -51,7 +52,7 @@ func New(t transactional.Transactional,
 	}
 }
 
-func (uc *useCase) Register(ctx context.Context, inp *entity.CreateUserInput) (*entity.User, error) {
+func (uc *useCase) Register(ctx context.Context, inp entity.CreateUserInput) (*entity.User, error) {
 	op := "UserUseCase - Register"
 
 	var user entity.User
@@ -183,28 +184,38 @@ func (uc *useCase) UpdateUser(ctx context.Context, inp entity.UpdateUserInput) e
 	return nil
 }
 
-func (uc *useCase) ChangePassword(ctx context.Context, id int64, oldPassword, newpassword, confirmPassword string) error {
-	if newpassword != confirmPassword {
-		return errors.New("newPassword and confirmPassword must be the same")
+func (uc *useCase) ChangePassword(ctx context.Context, inp entity.ChangePasswordInput) error {
+	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
+		if inp.NewPassword != inp.ConfirmPassword {
+			return entity.ErrPasswordMismatch
+		}
+
+		user, err := uc.repo.GetById(ctx, inp.ID)
+		if err != nil {
+			return fmt.Errorf("UserUseCase - ChangePassword - uc.repo.GetById: %w", err)
+		}
+
+		if !auth.CheckPasswordHash(inp.OldPassword, user.Password) {
+			return fmt.Errorf("UserUseCase - ChangePassword - auth.CheckPasswordHash: %w", err)
+		}
+
+		hashedPassword, err := auth.HashPassword(inp.NewPassword)
+		if err != nil {
+			return fmt.Errorf("UserUseCase - ChangePassword - auth.HashPassword: %w", err)
+		}
+
+		user.Password = hashedPassword
+
+		if err := uc.repo.Update(txCtx, user); err != nil {
+			return fmt.Errorf("uc.repo.Update: %w", err)
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("%s - uc.RunInTransaction: %w", err)
 	}
 
-	user, err := uc.repo.GetById(ctx, id)
-	if err != nil {
-		return errors.New("user not found")
-	}
-
-	if !auth.CheckPasswordHash(oldPassword, user.Password) {
-		return errors.New("error change password")
-	}
-
-	hashedPassword, err := auth.HashPassword(newpassword)
-	if err != nil {
-		return err
-	}
-
-	user.Password = hashedPassword
-	return uc.repo.Update(ctx, user)
-
+	return nil
 }
 
 func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipart.FileHeader) error {
@@ -226,31 +237,31 @@ func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipar
 
 	user, err := uc.repo.GetById(ctx, id)
 	if err != nil {
-		return errors.New("user not found")
+		return fmt.Errorf("UserUseCase - SetProfilePhoto - uc.repo.GetById: %w", err)
 	}
+
 	filename := fmt.Sprintf("%s_profile%s", user.Username, ext)
 	filePath := filepath.Join(uc.storageBasePath, filename)
 
 	src, err := file.Open()
 	if err != nil {
-		return fmt.Errorf("failed to open uploaded file: %v", err)
+		return entity.ErrOpenFile
 	}
 	defer src.Close()
 
 	dst, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %v", err)
+		return entity.ErrCreateFile
 	}
 
 	if _, err := io.Copy(dst, src); err != nil {
-		return fmt.Errorf("failed to save file: %v", err)
+		return entity.ErrSaveFile
 	}
 	defer dst.Close()
 
-	////////
 	user.FilePath = &filePath
 	if err := uc.repo.Update(ctx, user); err != nil {
-		return fmt.Errorf("failed to update user profile photo: %v", err)
+		return fmt.Errorf("uc.repo.Update: %w", err)
 	}
 	return nil
 }
@@ -259,7 +270,7 @@ func (uc *useCase) VerifyEmail(ctx context.Context, token string) error {
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		user, err := uc.repo.GetByVerifyToken(ctx, token)
 		if err != nil {
-			return errors.New("invalid verification token")
+			return fmt.Errorf("uc.repo.GetByVerifyToken: %w", err)
 		}
 
 		user.IsVerified = true
@@ -303,6 +314,20 @@ func (uc *useCase) RefreshTokens(ctx context.Context, refreshToken string) (*ent
 	}, nil
 }
 
+func (uc *useCase) UpdateRating(ctx context.Context, id int64, rating float32) error {
+	var user entity.User
+	user.ID = id
+	user.Rating = rating
+
+	uc.mtx.Lock()
+	defer uc.mtx.Unlock()
+
+	if err := uc.repo.Update(ctx, &user); err != nil {
+		return fmt.Errorf("uc.repo.Update: %w", err)
+	}
+	return nil
+}
+
 func generateVerifyToken() (string, error) {
 	bytes := make([]byte, 16)
 	_, err := rand.Read(bytes)
@@ -312,17 +337,17 @@ func generateVerifyToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func (us *useCase) sendVerificationEmail(email, token string) error {
+func (uc *useCase) sendVerificationEmail(email, token string) error {
 	message := gomail.NewMessage()
-	message.SetHeader("From", us.emailConfig.SenderEmail)
+	message.SetHeader("From", uc.emailConfig.SenderEmail)
 	message.SetHeader("To", email)
 	message.SetHeader("Subject", "Email Verification")
 
-	verificationLink := fmt.Sprintf("http://localhost:8080/auth/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("http://localhost:8080/v1/users/verify?token=%s", token)
 	body := fmt.Sprintf("Please verify your email by clicking the following link: %s", verificationLink)
 	message.SetBody("text/plain", body)
 
-	d := gomail.NewDialer(us.emailConfig.SMTPHost, us.emailConfig.SMTPPort, us.emailConfig.SenderEmail, us.emailConfig.SenderPassword)
+	d := gomail.NewDialer(uc.emailConfig.SMTPHost, uc.emailConfig.SMTPPort, uc.emailConfig.SenderEmail, uc.emailConfig.SenderPassword)
 
 	return d.DialAndSend(message)
 }
