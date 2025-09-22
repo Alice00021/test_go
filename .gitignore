@@ -8,8 +8,8 @@
 my_key
 my_key.pub
 
-.storage/
+storage/
 
-./temp
+temp/
 
-./test-go
+test-go/
