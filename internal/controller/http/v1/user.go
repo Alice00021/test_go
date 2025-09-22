@@ -2,8 +2,6 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"test_go/internal/utils"
-
 	"net/http"
 	"sync"
 	"test_go/internal/controller/http/errors"
@@ -11,7 +9,6 @@ import (
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/usecase"
 	httpError "test_go/pkg/httpserver"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
 )
 
@@ -20,15 +17,15 @@ type userRoutes struct {
 	uc usecase.User
 }
 
-func NewUserRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.User, jwtManager *jwt.JWTManager) {
+func NewUserRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.User) {
 	r := &userRoutes{l, uc}
 	{
 		h := privateGroup.Group("/users")
 		h.GET("/profile", r.getProfile)
-		h.PATCH("/:id/change-password", r.changePassword)
-		h.PUT("/:id/photo", r.setProfilePhoto)
-		h.PATCH("/:id/rating", r.updateRating)
-		h.PATCH("/:id/concurrent-test", r.simulateConcurrentUpdates)
+		h.PATCH("/change-password", r.changePassword)
+		h.PUT("/photo", r.setProfilePhoto)
+		h.PATCH("/rating", r.updateRating)
+		h.PATCH("/concurrent-test", r.simulateConcurrentUpdates)
 	}
 }
 
@@ -53,20 +50,20 @@ func (r *userRoutes) getProfile(c *gin.Context) {
 func (r *userRoutes) changePassword(c *gin.Context) {
 	var req request.ChangePasswordRequest
 
-	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
-	if err != nil {
-		r.l.Error(err, "http - v1 - changePassword")
-		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
-		return
-	}
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		r.l.Error(err, "http - v1 - changePassword")
 		errors.ErrorResponse(c, httpError.NewBadRequestBodyError(err))
 		return
 	}
+	currentUser, err := middleware.GetCurrentUser(c)
+	if err != nil {
+		errors.ErrorResponse(c, err)
+		return
+	}
+
 	inp := req.ToEntity()
-	inp.ID = id
+	inp.ID = currentUser.ID
+
 	if err := r.uc.ChangePassword(c.Request.Context(), inp); err != nil {
 		r.l.Error(err, "http - v1 - changePassword")
 		errors.ErrorResponse(c, err)
@@ -84,14 +81,13 @@ func (r *userRoutes) setProfilePhoto(c *gin.Context) {
 		return
 	}
 
-	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
+	currentUser, err := middleware.GetCurrentUser(c)
 	if err != nil {
-		r.l.Error(err, "http - v1 - setProfilePhoto")
-		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
+		errors.ErrorResponse(c, err)
 		return
 	}
 
-	if err := r.uc.SetProfilePhoto(c.Request.Context(), id, req.File); err != nil {
+	if err := r.uc.SetProfilePhoto(c.Request.Context(), currentUser.ID, req.File); err != nil {
 		r.l.Error(err, "http - v1 - setProfilePhoto")
 		errors.ErrorResponse(c, err)
 		return
@@ -108,14 +104,13 @@ func (r *userRoutes) updateRating(c *gin.Context) {
 		return
 	}
 
-	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
+	currentUser, err := middleware.GetCurrentUser(c)
 	if err != nil {
-		r.l.Error(err, "http - v1 - updateRating")
-		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
+		errors.ErrorResponse(c, err)
 		return
 	}
 
-	if err := r.uc.UpdateRating(c.Request.Context(), id, req.Rating); err != nil {
+	if err := r.uc.UpdateRating(c.Request.Context(), currentUser.ID, req.Rating); err != nil {
 		r.l.Error(err, "http - v1 - updateRating")
 		errors.ErrorResponse(c, err)
 		return
@@ -125,10 +120,9 @@ func (r *userRoutes) updateRating(c *gin.Context) {
 }
 
 func (r *userRoutes) simulateConcurrentUpdates(c *gin.Context) {
-	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
+	currentUser, err := middleware.GetCurrentUser(c)
 	if err != nil {
-		r.l.Error(err, "http - v1 - simulateConcurrentUpdates")
-		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
+		errors.ErrorResponse(c, err)
 		return
 	}
 
@@ -143,14 +137,14 @@ func (r *userRoutes) simulateConcurrentUpdates(c *gin.Context) {
 		wg.Add(1)
 		go func(d float32) {
 			defer wg.Done()
-			if err := r.uc.UpdateRating(ctx, id, d); err != nil {
+			if err := r.uc.UpdateRating(ctx, currentUser.ID, d); err != nil {
 				r.l.Error(err, "http - v1 - simulateConcurrentUpdates - goroutine error")
 			}
 		}(delta)
 	}
 	wg.Wait()
 
-	user, err := r.uc.GetUser(ctx, id)
+	user, err := r.uc.GetUser(ctx, currentUser.ID)
 	if err != nil {
 		r.l.Error(err, "http - v1 - simulateConcurrentUpdates - get user after update")
 		errors.ErrorResponse(c, err)

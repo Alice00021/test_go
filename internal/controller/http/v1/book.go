@@ -1,17 +1,14 @@
 package v1
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"test_go/internal/controller/http/errors"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/usecase"
 	"test_go/internal/utils"
 	httpError "test_go/pkg/httpserver"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
-	"test_go/pkg/middleware"
-
-	"github.com/gin-gonic/gin"
 )
 
 type bookRoutes struct {
@@ -19,11 +16,10 @@ type bookRoutes struct {
 	uc usecase.Book
 }
 
-func NewBookRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Book, jwtManager *jwt.JWTManager) {
+func NewBookRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Book) {
 	r := &bookRoutes{l, uc}
 	{
-		h := privateGroup.Group("/book").Use(
-			middleware.AuthMiddleware(jwtManager))
+		h := privateGroup.Group("/book")
 		h.POST("/", r.createBook)
 		h.PATCH("/:id", r.updateBook)
 		h.DELETE("/:id", r.deleteBook)

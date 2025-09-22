@@ -102,7 +102,7 @@ func (uc *useCase) ChangePassword(ctx context.Context, inp entity.ChangePassword
 			return entity.ErrPasswordMismatch
 		}
 
-		user, err := uc.repo.GetById(ctx, inp.ID)
+		user, err := uc.repo.GetById(txCtx, inp.ID)
 		if err != nil {
 			return fmt.Errorf("UserUseCase - ChangePassword - uc.repo.GetById: %w", err)
 		}

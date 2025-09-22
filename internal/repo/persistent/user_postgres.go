@@ -93,6 +93,8 @@ func (r *UserRepo) Update(ctx context.Context, e *entity.User) error {
 		Set("rating", e.Rating).
 		Set("is_verified", e.IsVerified).
 		Set("verify_token", e.VerifyToken).
+		Set("password", e.Password).
+		Set("file_path", e.FilePath).
 		Where(squirrel.Eq{"id": e.ID})
 
 	sql, args, err := sqlBuilder.ToSql()

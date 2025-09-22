@@ -5,9 +5,7 @@ import (
 	"net/http"
 	"test_go/internal/controller/http/errors"
 	"test_go/internal/usecase"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
-	"test_go/pkg/middleware"
 )
 
 type exportRoutes struct {
@@ -15,11 +13,10 @@ type exportRoutes struct {
 	uc usecase.Export
 }
 
-func NewExportRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Export, jwtManager *jwt.JWTManager) {
+func NewExportRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Export) {
 	r := &exportRoutes{l, uc}
 	{
-		h := privateGroup.Group("/export").Use(
-			middleware.AuthMiddleware(jwtManager))
+		h := privateGroup.Group("/export")
 		h.GET("/statistics", r.generateExportFile)
 	}
 }

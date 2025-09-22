@@ -7,7 +7,6 @@ import (
 	"test_go/internal/controller/http/middleware"
 	v1 "test_go/internal/controller/http/v1"
 	"test_go/internal/di"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
 
 	"test_go/config"
@@ -27,8 +26,7 @@ func NewRouter(handler *gin.Engine, cfg *config.Config, l logger.Interface, uc *
 	// Options
 	handler.Use(gin.Logger())
 	handler.Use(gin.Recovery())
-
-	jwtManager := jwt.NewJWTManager(cfg.JWT.SecretKey)
+	
 	// K8s probe
 	handler.GET("/healthz", func(c *gin.Context) { c.Status(http.StatusOK) })
 
@@ -45,15 +43,15 @@ func NewRouter(handler *gin.Engine, cfg *config.Config, l logger.Interface, uc *
 	//Routers
 	publicV1Group := handler.Group("/v1")
 	{
-		v1.NewAuthRoutes(publicV1Group, l, uc.Auth, jwtManager)
+		v1.NewAuthRoutes(publicV1Group, l, uc.Auth)
 	}
 
 	privateV1Group := handler.Group("/v1")
 	privateV1Group.Use(middleware.JwtAuthMiddleware(uc.Auth))
 	{
-		v1.NewUserRoutes(privateV1Group, l, uc.User, jwtManager)
-		v1.NewExportRoutes(privateV1Group, l, uc.Export, jwtManager)
-		v1.NewBookRoutes(publicV1Group, l, uc.Book, jwtManager)
-		v1.NewAuthorRoutes(publicV1Group, l, uc.Author, jwtManager)
+		v1.NewUserRoutes(privateV1Group, l, uc.User)
+		v1.NewExportRoutes(privateV1Group, l, uc.Export)
+		v1.NewBookRoutes(privateV1Group, l, uc.Book)
+		v1.NewAuthorRoutes(privateV1Group, l, uc.Author)
 	}
 }

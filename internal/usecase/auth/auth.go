@@ -53,8 +53,12 @@ func (uc *useCase) Register(ctx context.Context, inp entity.CreateUserInput) (*e
 	var user entity.User
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		_, err := uc.repo.GetByEmail(ctx, inp.Email)
-		if err != nil {
+		if err == nil {
 			return entity.ErrEmailAlreadyUsed
+		}
+
+		if !errors.Is(err, entity.ErrUserNotFound) {
+			return fmt.Errorf("uc.repo.GetByEmail: %w", err)
 		}
 
 		verifyToken, err := generateVerifyToken()

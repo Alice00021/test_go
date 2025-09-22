@@ -8,7 +8,6 @@ import (
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/usecase"
 	httpError "test_go/pkg/httpserver"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
 )
 
@@ -17,10 +16,10 @@ type authRoutes struct {
 	uc usecase.Auth
 }
 
-func NewAuthRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Auth, jwtManager *jwt.JWTManager) {
+func NewAuthRoutes(publicGroup *gin.RouterGroup, l logger.Interface, uc usecase.Auth) {
 	r := &authRoutes{l, uc}
 	{
-		h := privateGroup.Group("/auth")
+		h := publicGroup.Group("/auth")
 		h.POST("/register", r.register)
 		h.POST("/login", r.login)
 		h.GET("/verify", r.verifyEmail)

@@ -1,17 +1,14 @@
 package v1
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"test_go/internal/controller/http/errors"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/usecase"
 	"test_go/internal/utils"
 	httpError "test_go/pkg/httpserver"
-	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
-	"test_go/pkg/middleware"
-
-	"github.com/gin-gonic/gin"
 )
 
 type authorRoutes struct {
@@ -19,11 +16,10 @@ type authorRoutes struct {
 	uc usecase.Author
 }
 
-func NewAuthorRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Author, jwtManager *jwt.JWTManager) {
+func NewAuthorRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase.Author) {
 	r := &authorRoutes{l, uc}
 	{
-		h := privateGroup.Group("/author").Use(
-			middleware.AuthMiddleware(jwtManager))
+		h := privateGroup.Group("/author")
 		h.POST("/", r.createAuthor)
 		h.PATCH("/:id", r.updateAuthor)
 		h.DELETE("/:id", r.deleteAuthor)
