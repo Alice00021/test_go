@@ -28,7 +28,7 @@ func NewBookRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase
 		h.PATCH("/:id", r.updateBook)
 		h.DELETE("/:id", r.deleteBook)
 		h.GET("/:id", r.getBook)
-		h.GET("/", r.getAllBooks)
+		h.GET("/", r.getBooks)
 	}
 }
 
@@ -111,10 +111,10 @@ func (r *bookRoutes) getBook(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-func (r *bookRoutes) getAllBooks(c *gin.Context) {
+func (r *bookRoutes) getBooks(c *gin.Context) {
 	res, err := r.uc.GetBooks(c.Request.Context())
 	if err != nil {
-		r.l.Error(err, "http - v1 - getAllBooks")
+		r.l.Error(err, "http - v1 - getBooks")
 		errors.ErrorResponse(c, err)
 		return
 	}

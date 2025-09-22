@@ -1,21 +1,24 @@
 package entity
 
+type UserRole string
+
+const (
+	UserRoleAdmin  UserRole = "ADMIN"
+	UserRoleClient UserRole = "CLIENT"
+)
+
 type User struct {
 	Entity
 	Name        string
 	Surname     string
 	Username    string
 	Password    string
+	Role        UserRole
 	Email       string
 	IsVerified  bool
 	VerifyToken *string
 	FilePath    *string
 	Rating      float32
-}
-
-type TokenPair struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
 }
 
 type CreateUserInput struct {

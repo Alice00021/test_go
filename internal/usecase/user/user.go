@@ -2,8 +2,6 @@ package user
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -19,8 +17,6 @@ import (
 	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
 	"test_go/pkg/transactional"
-
-	"gopkg.in/gomail.v2"
 )
 
 type useCase struct {
@@ -50,90 +46,6 @@ func New(t transactional.Transactional,
 		emailConfig:     emailConfig,
 		mtx:             mtx,
 	}
-}
-
-func (uc *useCase) Register(ctx context.Context, inp entity.CreateUserInput) (*entity.User, error) {
-	op := "UserUseCase - Register"
-
-	var user entity.User
-	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		_, err := uc.repo.GetByEmail(ctx, inp.Email)
-		if err != nil {
-			return entity.ErrEmailAlreadyUsed
-		}
-
-		verifyToken, err := generateVerifyToken()
-		if err != nil {
-			return entity.ErrGenerateVerifyToken
-		}
-
-		e := entity.NewUser(
-			inp.Name, inp.Surname, inp.Username, inp.Password, inp.Email,
-		)
-		e.VerifyToken = &verifyToken
-
-		e.Rating = 50
-
-		hashedPassword, err := auth.HashPassword(e.Password)
-		if err != nil {
-			return err
-		}
-
-		e.Password = hashedPassword
-
-		res, err := uc.repo.Create(txCtx, e)
-		if err != nil {
-			return fmt.Errorf("uc.repo.Create: %w", err)
-		}
-
-		if err := uc.sendVerificationEmail(e.Email, verifyToken); err != nil {
-			return fmt.Errorf("uc.sendVerificationEmail: %w", err)
-		}
-		user = *res
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("%s - uc.RunInTransaction: %w", op, err)
-	}
-
-	return &user, nil
-}
-
-func (uc *useCase) Login(ctx context.Context, username string, password string) (*entity.TokenPair, error) {
-	op := "UserUseCase - Login"
-
-	var tokenPair entity.TokenPair
-	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		user, err := uc.repo.GetByUserName(ctx, username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.repo.GetByUserName: %w", op, err)
-		}
-
-		if !user.IsVerified {
-			return fmt.Errorf("%s - %w", op, entity.ErrEmailNotVerified)
-		}
-
-		if !auth.CheckPasswordHash(password, user.Password) {
-			return fmt.Errorf("%s - invalid credentials", op)
-		}
-
-		accessToken, err := uc.jwtManager.GenerateAccessToken(user.ID, user.Username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.jwtManager.GenerateAccessToken: %w", op, err)
-		}
-
-		refreshToken, err := uc.jwtManager.GenerateRefreshToken(user.ID, user.Username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.jwtManager.GenerateRefreshToken: %w", op, err)
-		}
-		tokenPair.AccessToken = accessToken
-		tokenPair.RefreshToken = refreshToken
-
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("%s - uc.RunInTransaction: %w", op, err)
-	}
-
-	return &tokenPair, nil
 }
 
 func (uc *useCase) GetUserByName(ctx context.Context, name string) (*entity.User, error) {
@@ -266,54 +178,6 @@ func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipar
 	return nil
 }
 
-func (uc *useCase) VerifyEmail(ctx context.Context, token string) error {
-	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		user, err := uc.repo.GetByVerifyToken(ctx, token)
-		if err != nil {
-			return fmt.Errorf("uc.repo.GetByVerifyToken: %w", err)
-		}
-
-		user.IsVerified = true
-		user.VerifyToken = nil
-
-		if err := uc.repo.Update(txCtx, user); err != nil {
-			return fmt.Errorf("uc.repo.Update: %w", err)
-		}
-		return nil
-	}); err != nil {
-		return fmt.Errorf("%s - uc.RunInTransaction: %w", err)
-	}
-
-	return nil
-}
-
-func (uc *useCase) RefreshTokens(ctx context.Context, refreshToken string) (*entity.TokenPair, error) {
-	claims, err := uc.jwtManager.ParseToken(refreshToken)
-	if err != nil {
-		return nil, errors.New("invalid refresh token")
-	}
-	user, err := uc.repo.GetByUserName(ctx, claims.Username)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-
-	acessToken, err := uc.jwtManager.GenerateAccessToken(user.ID, user.Username)
-	if err != nil {
-		return nil, err
-	}
-
-	newRefreshToken, err := uc.jwtManager.GenerateRefreshToken(user.ID, user.Username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &entity.TokenPair{
-		AccessToken:  acessToken,
-		RefreshToken: newRefreshToken,
-	}, nil
-}
-
 func (uc *useCase) UpdateRating(ctx context.Context, id int64, rating float32) error {
 	var user entity.User
 	user.ID = id
@@ -326,28 +190,4 @@ func (uc *useCase) UpdateRating(ctx context.Context, id int64, rating float32) e
 		return fmt.Errorf("uc.repo.Update: %w", err)
 	}
 	return nil
-}
-
-func generateVerifyToken() (string, error) {
-	bytes := make([]byte, 16)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-func (uc *useCase) sendVerificationEmail(email, token string) error {
-	message := gomail.NewMessage()
-	message.SetHeader("From", uc.emailConfig.SenderEmail)
-	message.SetHeader("To", email)
-	message.SetHeader("Subject", "Email Verification")
-
-	verificationLink := fmt.Sprintf("http://localhost:8080/v1/users/verify?token=%s", token)
-	body := fmt.Sprintf("Please verify your email by clicking the following link: %s", verificationLink)
-	message.SetBody("text/plain", body)
-
-	d := gomail.NewDialer(uc.emailConfig.SMTPHost, uc.emailConfig.SMTPPort, uc.emailConfig.SenderEmail, uc.emailConfig.SenderPassword)
-
-	return d.DialAndSend(message)
 }

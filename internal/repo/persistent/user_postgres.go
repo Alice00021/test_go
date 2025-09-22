@@ -27,10 +27,10 @@ func (r *UserRepo) Create(ctx context.Context, e *entity.User) (*entity.User, er
 		Insert("users").
 		Columns(
 			"name, surname, username, password, file_path, email, "+
-				"verify_token, is_verified, rating").
+				"verify_token, is_verified, rating", "role").
 		Values(
 			e.Name, e.Surname, e.Username, e.Password, e.FilePath, e.Email,
-			e.VerifyToken, e.IsVerified, e.Rating).
+			e.VerifyToken, e.IsVerified, e.Rating, e.Role).
 		Suffix(`RETURNING id`).
 		ToSql()
 	if err != nil {
@@ -55,7 +55,7 @@ func (r *UserRepo) GetById(ctx context.Context, id int64) (*entity.User, error) 
 		Select(
 			"id", "created_at", "updated_at", "deleted_at", "name",
 			"surname", "username", "password", "file_path", "email",
-			"verify_token", "is_verified", "rating",
+			"verify_token", "is_verified", "rating", "role",
 		).
 		From("users").
 		Where("deleted_at IS NULL").
@@ -83,7 +83,7 @@ func (r *UserRepo) GetById(ctx context.Context, id int64) (*entity.User, error) 
 }
 
 func (r *UserRepo) Update(ctx context.Context, e *entity.User) error {
-	op := "TransactionRepo - Update"
+	op := "UserRepo - Update"
 
 	sqlBuilder := r.Builder.
 		Update("users").
@@ -115,7 +115,7 @@ func (r *UserRepo) GetByUserName(ctx context.Context, username string) (*entity.
 		Select(
 			"id", "created_at", "updated_at", "deleted_at", "name",
 			"surname", "username", "password", "file_path", "email",
-			"verify_token", "is_verified", "rating",
+			"verify_token", "is_verified", "rating", "role",
 		).
 		From("users").
 		Where("deleted_at IS NULL").
@@ -149,7 +149,7 @@ func (r *UserRepo) GetAll(ctx context.Context, filter entity.FilterUserInput) ([
 		Select(
 			"id", "created_at", "updated_at", "deleted_at", "name",
 			"surname", "username", "password", "file_path", "email",
-			"verify_token", "is_verified", "rating",
+			"verify_token", "is_verified", "rating", "role",
 		).
 		From("users").
 		Where("deleted_at IS NULL")
@@ -180,7 +180,7 @@ func (r *UserRepo) GetAll(ctx context.Context, filter entity.FilterUserInput) ([
 		if err = rows.Scan(
 			&e.ID, &e.CreatedAt, &e.UpdatedAt, &e.DeletedAt, &e.Name,
 			&e.Surname, &e.Username, &e.Password, &e.FilePath, &e.Email,
-			&e.VerifyToken, &e.IsVerified, &e.Rating,
+			&e.VerifyToken, &e.IsVerified, &e.Rating, &e.Role,
 		); err != nil {
 			return nil, fmt.Errorf("%s - row.Scan: %w", op, err)
 		}
@@ -202,7 +202,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*entity.User, 
 		Select(
 			"id", "created_at", "updated_at", "deleted_at", "name",
 			"surname", "username", "password", "file_path", "email",
-			"verify_token", "is_verified", "rating",
+			"verify_token", "is_verified", "rating", "role",
 		).
 		From("users").
 		Where("deleted_at IS NULL").
@@ -236,7 +236,7 @@ func (r *UserRepo) GetByVerifyToken(ctx context.Context, verifyToken string) (*e
 		Select(
 			"id", "created_at", "updated_at", "deleted_at", "name",
 			"surname", "username", "password", "file_path", "email",
-			"verify_token", "is_verified", "rating",
+			"verify_token", "is_verified", "rating", "role",
 		).
 		From("users").
 		Where("deleted_at IS NULL").

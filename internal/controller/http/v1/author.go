@@ -28,7 +28,7 @@ func NewAuthorRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc useca
 		h.PATCH("/:id", r.updateAuthor)
 		h.DELETE("/:id", r.deleteAuthor)
 		h.GET("/:id", r.getAuthor)
-		h.GET("/", r.getAllAuthors)
+		h.GET("/", r.getAuthors)
 	}
 }
 
@@ -111,10 +111,10 @@ func (r *authorRoutes) getAuthor(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-func (r *authorRoutes) getAllAuthors(c *gin.Context) {
+func (r *authorRoutes) getAuthors(c *gin.Context) {
 	res, err := r.uc.GetAuthors(c.Request.Context())
 	if err != nil {
-		r.l.Error(err, "http - v1 - getAllAuthors")
+		r.l.Error(err, "http - v1 - getAuthors")
 		errors.ErrorResponse(c, err)
 		return
 	}

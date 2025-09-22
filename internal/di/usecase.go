@@ -4,6 +4,7 @@ import (
 	"sync"
 	"test_go/config"
 	"test_go/internal/usecase"
+	"test_go/internal/usecase/auth"
 	"test_go/internal/usecase/author"
 	"test_go/internal/usecase/book"
 	"test_go/internal/usecase/export"
@@ -14,6 +15,7 @@ import (
 )
 
 type UseCase struct {
+	Auth   usecase.Auth
 	User   usecase.User
 	Book   usecase.Book
 	Author usecase.Author
@@ -28,11 +30,13 @@ func NewUseCase(
 	jwtManager *jwt.JWTManager,
 ) *UseCase {
 	txMtx := &sync.Mutex{}
+	authUc := auth.New(t, l, repo.UserRepo, jwtManager, conf.LocalFileStorage.BasePath, &conf.EmailConfig, txMtx)
 	userUc := user.New(t, l, repo.UserRepo, jwtManager, conf.LocalFileStorage.BasePath, &conf.EmailConfig, txMtx)
 	authorUc := author.New(t, repo.AuthorRepo, l)
 	bookUc := book.New(t, repo.BookRepo, l)
 	exportUc := export.New(authorUc, bookUc, l, conf.LocalFileStorage.ExportPath)
 	return &UseCase{
+		Auth:   authUc,
 		Author: authorUc,
 		Book:   bookUc,
 		User:   userUc,

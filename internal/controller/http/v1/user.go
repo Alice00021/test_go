@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"sync"
 	"test_go/internal/controller/http/errors"
+	"test_go/internal/controller/http/middleware"
 	"test_go/internal/controller/http/v1/request"
 	"test_go/internal/usecase"
 	httpError "test_go/pkg/httpserver"
 	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
-	"test_go/pkg/middleware"
 )
 
 type userRoutes struct {
@@ -24,14 +24,7 @@ func NewUserRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase
 	r := &userRoutes{l, uc}
 	{
 		h := privateGroup.Group("/users")
-		h.POST("/register", r.register)
-		h.POST("/login", r.login)
-		h.GET("/verify", r.verifyEmail)
-	}
-	{
-		h := privateGroup.Group("/users").Use(
-			middleware.AuthMiddleware(jwtManager))
-		h.GET("/profile/:id", r.getProfile)
+		h.GET("/profile", r.getProfile)
 		h.PATCH("/:id/change-password", r.changePassword)
 		h.PUT("/:id/photo", r.setProfilePhoto)
 		h.PATCH("/:id/rating", r.updateRating)
@@ -39,54 +32,15 @@ func NewUserRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc usecase
 	}
 }
 
-func (r *userRoutes) register(c *gin.Context) {
-	var req request.CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		r.l.Error(err, "http - v1 - createAccount")
-		errors.ErrorResponse(c, httpError.NewBadRequestBodyError(err))
-		return
-	}
-	inp := req.ToEntity()
-
-	res, err := r.uc.Register(c.Request.Context(), inp)
-	if err != nil {
-		r.l.Error(err, "http - v1 - register")
-		errors.ErrorResponse(c, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, res)
-}
-
-func (r *userRoutes) login(c *gin.Context) {
-	var req request.AuthenticateRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		r.l.Error(err, "http - v1 - createAccount")
-		errors.ErrorResponse(c, httpError.NewBadRequestBodyError(err))
-		return
-	}
-
-	res, err := r.uc.Login(c.Request.Context(), req.Username, req.Password)
-	if err != nil {
-		r.l.Error(err, "http - v1 - login")
-		errors.ErrorResponse(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
-}
-
 func (r *userRoutes) getProfile(c *gin.Context) {
 
-	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
+	currentUser, err := middleware.GetCurrentUser(c)
 	if err != nil {
-		r.l.Error(err, "http - v1 - getProfile")
-		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
+		errors.ErrorResponse(c, err)
 		return
 	}
 
-	res, err := r.uc.GetUser(c.Request.Context(), id)
+	res, err := r.uc.GetUser(c.Request.Context(), currentUser.ID)
 	if err != nil {
 		r.l.Error(err, "http - v1 - getProfile")
 		errors.ErrorResponse(c, err)
@@ -101,7 +55,7 @@ func (r *userRoutes) changePassword(c *gin.Context) {
 
 	id, err := utils.ParsePathParam(utils.ParseParams{Context: c, Key: "id"}, utils.ParseInt64)
 	if err != nil {
-		r.l.Error(err, "http - v1 - getProfile")
+		r.l.Error(err, "http - v1 - changePassword")
 		errors.ErrorResponse(c, httpError.NewBadPathParamsError(err))
 		return
 	}
@@ -146,23 +100,6 @@ func (r *userRoutes) setProfilePhoto(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (r *userRoutes) verifyEmail(c *gin.Context) {
-	var req request.VerifyEmailRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		r.l.Error(err, "http - v1 - verifyEmail")
-		errors.ErrorResponse(c, httpError.NewBadQueryParamsError(err))
-		return
-	}
-
-	if err := r.uc.VerifyEmail(c.Request.Context(), req.Token); err != nil {
-		r.l.Error(err, "http - v1 - verifyEmail")
-		errors.ErrorResponse(c, err)
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
 func (r *userRoutes) updateRating(c *gin.Context) {
 	var req request.UpdateRatingRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -179,7 +116,8 @@ func (r *userRoutes) updateRating(c *gin.Context) {
 	}
 
 	if err := r.uc.UpdateRating(c.Request.Context(), id, req.Rating); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		r.l.Error(err, "http - v1 - updateRating")
+		errors.ErrorResponse(c, err)
 		return
 	}
 

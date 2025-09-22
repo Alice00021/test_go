@@ -8,17 +8,23 @@ import (
 )
 
 type (
+	Auth interface {
+		Register(context.Context, entity.CreateUserInput) (*entity.User, error)
+		Login(context.Context, string, string) (*entity.TokenPair, error)
+		VerifyEmail(context.Context, string) error
+		RefreshTokens(context.Context, string) (*entity.TokenPair, error)
+		Validation(context.Context, string) (*entity.UserInfoToken, error)
+	}
+
 	User interface {
 		GetUser(context.Context, int64) (*entity.User, error)
 		GetUserByName(context.Context, string) (*entity.User, error)
 		GetUsers(context.Context, entity.FilterUserInput) ([]*entity.User, error)
-		Login(context.Context, string, string) (*entity.TokenPair, error)
-		Register(context.Context, entity.CreateUserInput) (*entity.User, error)
 		ChangePassword(context.Context, entity.ChangePasswordInput) error
-		VerifyEmail(context.Context, string) error
 		UpdateRating(context.Context, int64, float32) error
 		SetProfilePhoto(context.Context, int64, *multipart.FileHeader) error
 	}
+
 	Author interface {
 		CreateAuthor(context.Context, entity.CreateAuthorInput) (*entity.Author, error)
 		UpdateAuthor(context.Context, entity.UpdateAuthorInput) error
