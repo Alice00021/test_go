@@ -14,6 +14,8 @@ type (
 		HTTP             HTTP
 		Log              Log
 		PG               PG
+		RMQ              RMQ
+		RMQReceivers     RMQReceivers
 		Metrics          Metrics
 		Swagger          Swagger
 		LocalFileStorage LocalFileStorage
@@ -42,6 +44,18 @@ type (
 	PG struct {
 		PoolMax int    `env:"PG_POOL_MAX,required"`
 		URL     string `env:"PG_URL,required"`
+	}
+
+	// RMQ -.
+	RMQ struct {
+		ServerExchange string `env:"RMQ_RPC_SERVER_EXCHANGE,required"`
+		ClientExchange string `env:"RMQ_RPC_CLIENT_EXCHANGE,required"`
+		ClientPrefix   string `env:"RMQ_RPC_CLIENT_PREFIX,required"`
+		URL            string `env:"RMQ_URL,required"`
+	}
+
+	// RMQReceivers -.
+	RMQReceivers struct {
 	}
 
 	// Metrics -.

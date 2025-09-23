@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"test_go/internal/di"
 	"test_go/pkg/jwt"
+	"test_go/pkg/rabbitmq/rmq_rpc/client"
+	"test_go/pkg/rabbitmq/rmq_rpc/server"
 	"test_go/pkg/transactional"
 
 	"test_go/pkg/httpserver"
@@ -17,6 +19,7 @@ import (
 
 	"test_go/config"
 
+	amqprpc "test_go/internal/controller/amqp_rpc"
 	"test_go/internal/controller/http"
 )
 
@@ -36,11 +39,25 @@ func Run(cfg *config.Config) {
 	// Transaction builder
 	pgTx := transactional.NewPgTransaction(pg)
 
+	// RabbitMQ RPC Client
+	rmqClient, err := client.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, cfg.RMQ.ClientExchange, cfg.App.Name, cfg.RMQ.ClientPrefix)
+	if err != nil {
+		l.Fatal("RabbitMQ RPC Client - init error - client.New")
+	}
+
 	// Repo
 	repo := di.NewRepo(pg)
 
 	// Use-Case
 	uc := di.NewUseCase(pgTx, repo, l, cfg, jwtManager)
+
+	// RabbitMQ RPC Server
+	rmqRouter := amqprpc.NewRouter(uc, l)
+
+	rmqServer, err := server.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, cfg.App.Name, rmqRouter, l, cfg.RMQ.ClientPrefix)
+	if err != nil {
+		l.Fatal(fmt.Errorf("app - Run - rmqServer - server.New: %w", err))
+	}
 
 	// HTTP Server
 	handler := gin.New()
@@ -56,11 +73,23 @@ func Run(cfg *config.Config) {
 		l.Info("app - Run - signal: %s", s.String())
 	case err = <-httpServer.Notify():
 		l.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
+	case err = <-rmqServer.Notify():
+		l.Error(fmt.Errorf("app - Run - rmqServer.Notify: %w", err))
 	}
 
 	// Shutdown
 	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
+	}
+
+	err = rmqServer.Shutdown()
+	if err != nil {
+		l.Error(fmt.Errorf("app - Run - rmqServer.Shutdown: %w", err))
+	}
+
+	err = rmqClient.Shutdown()
+	if err != nil {
+		l.Fatal("RabbitMQ RPC Client - shutdown error - rmqClient.RemoteCall", err)
 	}
 }
