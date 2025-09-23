@@ -19,7 +19,7 @@ type bookRoutes struct {
 func newBookRoutes(routes map[string]server.CallHandler, uc usecase.Book, l logger.Interface) {
 	r := &bookRoutes{uc, l}
 	{
-		routes["v1.createAccount"] = r.createBook()
+		routes["v1.createBook"] = r.createBook()
 
 	}
 }
