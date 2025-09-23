@@ -63,6 +63,7 @@ type (
 		SMTPPort       int    `env:"SMTP_PORT,required"`
 		SenderEmail    string `env:"SENDER_EMAIL,required"`
 		SenderPassword string `env:"SENDER_PASSWORD,required"`
+		VerifyBaseURL  string `env:"VERIFY_BASE_URL,required"`
 	}
 	JWTConfig struct {
 		SecretKey string `env:"JWT_SECRET_KEY,required"`

@@ -51,7 +51,6 @@ func (uc *useCase) CreateAuthor(ctx context.Context, inp entity.CreateAuthorInpu
 }
 
 func (uc *useCase) UpdateAuthor(ctx context.Context, inp entity.UpdateAuthorInput) error {
-
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		e := &entity.Author{
 			Entity: entity.Entity{ID: inp.ID},

@@ -76,7 +76,6 @@ func (uc *useCase) GetUsers(ctx context.Context, filter entity.FilterUserInput) 
 }
 
 func (uc *useCase) UpdateUser(ctx context.Context, inp entity.UpdateUserInput) error {
-
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		e := &entity.User{
 			Entity:   entity.Entity{ID: inp.ID},
@@ -131,63 +130,75 @@ func (uc *useCase) ChangePassword(ctx context.Context, inp entity.ChangePassword
 }
 
 func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipart.FileHeader) error {
-	allowedPhoto := map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
+	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
+		allowedPhoto := map[string]bool{
+			".jpg":  true,
+			".jpeg": true,
+			".png":  true,
+		}
+
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+
+		if !allowedPhoto[ext] {
+			return errors.New("invalid file type, only images (jpg, jpeg, png) are allowed")
+		}
+
+		if err := os.MkdirAll(uc.storageBasePath, 0755); err != nil {
+			return fmt.Errorf("failed to create upload directory: %v", err)
+		}
+
+		user, err := uc.repo.GetById(ctx, id)
+		if err != nil {
+			return fmt.Errorf("UserUseCase - SetProfilePhoto - uc.repo.GetById: %w", err)
+		}
+
+		filename := fmt.Sprintf("%s_profile%s", user.Username, ext)
+		filePath := filepath.Join(uc.storageBasePath, filename)
+
+		src, err := file.Open()
+		if err != nil {
+			return entity.ErrOpenFile
+		}
+		defer src.Close()
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return entity.ErrCreateFile
+		}
+
+		if _, err := io.Copy(dst, src); err != nil {
+			return entity.ErrSaveFile
+		}
+		defer dst.Close()
+
+		user.FilePath = &filePath
+		if err := uc.repo.Update(ctx, user); err != nil {
+			return fmt.Errorf("uc.repo.Update: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("%s - uc.RunInTransaction: %w", err)
 	}
 
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-
-	if !allowedPhoto[ext] {
-		return errors.New("invalid file type, only images (jpg, jpeg, png) are allowed")
-	}
-
-	if err := os.MkdirAll(uc.storageBasePath, 0755); err != nil {
-		return fmt.Errorf("failed to create upload directory: %v", err)
-	}
-
-	user, err := uc.repo.GetById(ctx, id)
-	if err != nil {
-		return fmt.Errorf("UserUseCase - SetProfilePhoto - uc.repo.GetById: %w", err)
-	}
-
-	filename := fmt.Sprintf("%s_profile%s", user.Username, ext)
-	filePath := filepath.Join(uc.storageBasePath, filename)
-
-	src, err := file.Open()
-	if err != nil {
-		return entity.ErrOpenFile
-	}
-	defer src.Close()
-
-	dst, err := os.Create(filePath)
-	if err != nil {
-		return entity.ErrCreateFile
-	}
-
-	if _, err := io.Copy(dst, src); err != nil {
-		return entity.ErrSaveFile
-	}
-	defer dst.Close()
-
-	user.FilePath = &filePath
-	if err := uc.repo.Update(ctx, user); err != nil {
-		return fmt.Errorf("uc.repo.Update: %w", err)
-	}
 	return nil
 }
 
 func (uc *useCase) UpdateRating(ctx context.Context, id int64, rating float32) error {
-	var user entity.User
-	user.ID = id
-	user.Rating = rating
+	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
+		var user entity.User
+		user.ID = id
+		user.Rating = rating
 
-	uc.mtx.Lock()
-	defer uc.mtx.Unlock()
+		uc.mtx.Lock()
+		defer uc.mtx.Unlock()
 
-	if err := uc.repo.Update(ctx, &user); err != nil {
-		return fmt.Errorf("uc.repo.Update: %w", err)
+		if err := uc.repo.Update(ctx, &user); err != nil {
+			return fmt.Errorf("uc.repo.Update: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("%s - uc.RunInTransaction: %w", err)
 	}
+
 	return nil
 }

@@ -50,7 +50,6 @@ func (uc *useCase) CreateBook(ctx context.Context, inp entity.CreateBookInput) (
 }
 
 func (uc *useCase) UpdateBook(ctx context.Context, inp entity.UpdateBookInput) error {
-
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		e := &entity.Book{
 			Entity:   entity.Entity{ID: inp.ID},

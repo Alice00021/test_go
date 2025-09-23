@@ -157,6 +157,7 @@ func (uc *useCase) VerifyEmail(ctx context.Context, token string) error {
 }
 
 func (uc *useCase) RefreshTokens(ctx context.Context, refreshToken string) (*entity.TokenPair, error) {
+	
 	claims, err := uc.jwtManager.ParseToken(refreshToken)
 	if err != nil {
 		return nil, entity.ErrInvalidRefreshToken
@@ -222,7 +223,7 @@ func (uc *useCase) sendVerificationEmail(email, token string) error {
 	message.SetHeader("To", email)
 	message.SetHeader("Subject", "Email Verification")
 
-	verificationLink := fmt.Sprintf("http://localhost:8080/v1/users/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("%s?token=%s", uc.emailConfig.VerifyBaseURL, token)
 	body := fmt.Sprintf("Please verify your email by clicking the following link: %s", verificationLink)
 	message.SetBody("text/plain", body)
 
