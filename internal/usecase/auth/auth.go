@@ -52,7 +52,7 @@ func (uc *useCase) Register(ctx context.Context, inp entity.CreateUserInput) (*e
 
 	var user entity.User
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		_, err := uc.repo.GetByEmail(ctx, inp.Email)
+		_, err := uc.repo.GetByEmail(txCtx, inp.Email)
 		if err == nil {
 			return entity.ErrEmailAlreadyUsed
 		}
@@ -101,43 +101,37 @@ func (uc *useCase) Login(ctx context.Context, username string, password string) 
 	op := "AuthUseCase - Login"
 
 	var tokenPair entity.TokenPair
-	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		user, err := uc.repo.GetByUserName(ctx, username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.repo.GetByUserName: %w", op, err)
-		}
-
-		if !user.IsVerified {
-			return fmt.Errorf("%s - %w", op, entity.ErrEmailNotVerified)
-		}
-
-		if !auth.CheckPasswordHash(password, user.Password) {
-			return fmt.Errorf("%s - invalid credentials", op)
-		}
-
-		accessToken, err := uc.jwtManager.GenerateAccessToken(user.ID, user.Username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.jwtManager.GenerateAccessToken: %w", op, err)
-		}
-
-		refreshToken, err := uc.jwtManager.GenerateRefreshToken(user.ID, user.Username)
-		if err != nil {
-			return fmt.Errorf("%s - uc.jwtManager.GenerateRefreshToken: %w", op, err)
-		}
-		tokenPair.AccessToken = accessToken
-		tokenPair.RefreshToken = refreshToken
-
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("%s - uc.RunInTransaction: %w", op, err)
+	user, err := uc.repo.GetByUserName(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("%s - uc.repo.GetByUserName: %w", op, err)
 	}
+
+	if !user.IsVerified {
+		return nil, fmt.Errorf("%s - %w", op, entity.ErrEmailNotVerified)
+	}
+
+	if !auth.CheckPasswordHash(password, user.Password) {
+		return nil, fmt.Errorf("%s - invalid credentials", op)
+	}
+
+	accessToken, err := uc.jwtManager.GenerateAccessToken(user.ID, user.Username)
+	if err != nil {
+		return nil, fmt.Errorf("%s - uc.jwtManager.GenerateAccessToken: %w", op, err)
+	}
+
+	refreshToken, err := uc.jwtManager.GenerateRefreshToken(user.ID, user.Username)
+	if err != nil {
+		return nil, fmt.Errorf("%s - uc.jwtManager.GenerateRefreshToken: %w", op, err)
+	}
+	tokenPair.AccessToken = accessToken
+	tokenPair.RefreshToken = refreshToken
 
 	return &tokenPair, nil
 }
 
 func (uc *useCase) VerifyEmail(ctx context.Context, token string) error {
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		user, err := uc.repo.GetByVerifyToken(ctx, token)
+		user, err := uc.repo.GetByVerifyToken(txCtx, token)
 		if err != nil {
 			return fmt.Errorf("uc.repo.GetByVerifyToken: %w", err)
 		}
@@ -157,7 +151,7 @@ func (uc *useCase) VerifyEmail(ctx context.Context, token string) error {
 }
 
 func (uc *useCase) RefreshTokens(ctx context.Context, refreshToken string) (*entity.TokenPair, error) {
-	
+
 	claims, err := uc.jwtManager.ParseToken(refreshToken)
 	if err != nil {
 		return nil, entity.ErrInvalidRefreshToken

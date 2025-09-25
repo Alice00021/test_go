@@ -172,7 +172,7 @@ func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipar
 		defer dst.Close()
 
 		user.FilePath = &filePath
-		if err := uc.repo.Update(ctx, user); err != nil {
+		if err := uc.repo.Update(txCtx, user); err != nil {
 			return fmt.Errorf("uc.repo.Update: %w", err)
 		}
 		return nil
@@ -184,15 +184,15 @@ func (uc *useCase) SetProfilePhoto(ctx context.Context, id int64, file *multipar
 }
 
 func (uc *useCase) UpdateRating(ctx context.Context, id int64, rating float32) error {
+	uc.mtx.Lock()
+	defer uc.mtx.Unlock()
+
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		var user entity.User
 		user.ID = id
 		user.Rating = rating
 
-		uc.mtx.Lock()
-		defer uc.mtx.Unlock()
-
-		if err := uc.repo.Update(ctx, &user); err != nil {
+		if err := uc.repo.Update(txCtx, &user); err != nil {
 			return fmt.Errorf("uc.repo.Update: %w", err)
 		}
 		return nil
