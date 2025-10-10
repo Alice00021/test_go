@@ -26,7 +26,7 @@ func NewRouter(handler *gin.Engine, cfg *config.Config, l logger.Interface, uc *
 	// Options
 	handler.Use(gin.Logger())
 	handler.Use(gin.Recovery())
-	
+
 	// K8s probe
 	handler.GET("/healthz", func(c *gin.Context) { c.Status(http.StatusOK) })
 
@@ -53,5 +53,7 @@ func NewRouter(handler *gin.Engine, cfg *config.Config, l logger.Interface, uc *
 		v1.NewExportRoutes(privateV1Group, l, uc.Export)
 		v1.NewBookRoutes(privateV1Group, l, uc.Book)
 		v1.NewAuthorRoutes(privateV1Group, l, uc.Author)
+		v1.NewCommandRoutes(privateV1Group, l, uc.Command)
+		v1.NewOperationRoutes(privateV1Group, l, uc.Operation)
 	}
 }

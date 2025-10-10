@@ -7,7 +7,9 @@ import (
 	"test_go/internal/usecase/auth"
 	"test_go/internal/usecase/author"
 	"test_go/internal/usecase/book"
+	"test_go/internal/usecase/command"
 	"test_go/internal/usecase/export"
+	"test_go/internal/usecase/operation"
 	"test_go/internal/usecase/user"
 	"test_go/pkg/jwt"
 	"test_go/pkg/logger"
@@ -15,11 +17,13 @@ import (
 )
 
 type UseCase struct {
-	Auth   usecase.Auth
-	User   usecase.User
-	Book   usecase.Book
-	Author usecase.Author
-	Export usecase.Export
+	Auth      usecase.Auth
+	User      usecase.User
+	Book      usecase.Book
+	Author    usecase.Author
+	Export    usecase.Export
+	Command   usecase.Command
+	Operation usecase.Operation
 }
 
 func NewUseCase(
@@ -35,11 +39,15 @@ func NewUseCase(
 	authorUc := author.New(t, repo.AuthorRepo, l)
 	bookUc := book.New(t, repo.BookRepo, l)
 	exportUc := export.New(authorUc, bookUc, l, conf.LocalFileStorage.ExportPath)
+	commandUc := command.New(t, repo.CommandRepo, l)
+	operationUc := operation.New(t, repo.OperationRepo, repo.OperationCommandsRepo, repo.CommandRepo, l)
 	return &UseCase{
-		Auth:   authUc,
-		Author: authorUc,
-		Book:   bookUc,
-		User:   userUc,
-		Export: exportUc,
+		Auth:      authUc,
+		Author:    authorUc,
+		Book:      bookUc,
+		User:      userUc,
+		Export:    exportUc,
+		Command:   commandUc,
+		Operation: operationUc,
 	}
 }

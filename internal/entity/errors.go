@@ -21,4 +21,8 @@ var (
 	ErrOpenFile   = errors.New("failed to open file")
 	ErrCreateFile = errors.New("failed to create file")
 	ErrSaveFile   = errors.New("failed to save file")
+
+	ErrCommandNotFound = errors.New("command not found")
+
+	ErrOperationNotFound = errors.New("operation not found")
 )

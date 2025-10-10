@@ -31,4 +31,21 @@ type (
 		GetAll(context.Context) ([]*entity.Book, error)
 		DeleteById(context.Context, int64) error
 	}
+
+	CommandRepo interface {
+		Create(context.Context, *entity.Command) (*entity.Command, error)
+		GetById(context.Context, int64) (*entity.Command, error)
+		Update(context.Context, int64, entity.Address) error
+		GetBySystemName(context.Context, string) (*entity.Command, error)
+	}
+	OperationRepo interface {
+		Create(context.Context, *entity.Operation) (*entity.Operation, error)
+		GetById(context.Context, int64) (*entity.Operation, error)
+		Update(context.Context, *entity.Operation) error
+		DeleteById(context.Context, int64) error
+	}
+	OperationCommandsRepo interface {
+		Create(context.Context, int64, int64) error
+		DeleteByOperationId(context.Context, int64) error
+	}
 )

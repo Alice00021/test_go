@@ -45,4 +45,12 @@ type (
 		GenerateExcelFile(context.Context) (*excelize.File, error)
 		SaveToFile(*excelize.File) (string, error)
 	}
+	Command interface {
+		UpdateCommands(context.Context, *multipart.FileHeader) error
+	}
+	Operation interface {
+		CreateOperation(context.Context, entity.CreateOperationInput) (*entity.Operation, error)
+		UpdateOperation(context.Context, entity.UpdateOperationInput) error
+		DeleteOperation(context.Context, int64) error
+	}
 )
