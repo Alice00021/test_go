@@ -20,7 +20,7 @@ func NewOperationRoutes(privateGroup *gin.RouterGroup, l logger.Interface, uc us
 	r := &operationRoutes{l, uc}
 	{
 		h := privateGroup.Group("/operation")
-		h.POST("/", r.createOperation)
+		h.POST("", r.createOperation)
 		h.PUT("/:id", r.updateOperation)
 		h.DELETE("/:id", r.deleteOperation)
 	}

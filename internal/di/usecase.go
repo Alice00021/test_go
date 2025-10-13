@@ -39,7 +39,7 @@ func NewUseCase(
 	authorUc := author.New(t, repo.AuthorRepo, l)
 	bookUc := book.New(t, repo.BookRepo, l)
 	exportUc := export.New(authorUc, bookUc, l, conf.LocalFileStorage.ExportPath)
-	commandUc := command.New(t, repo.CommandRepo, l)
+	commandUc := command.New(t, repo.CommandRepo, conf.LocalFileStorage, l)
 	operationUc := operation.New(t, repo.OperationRepo, repo.OperationCommandsRepo, repo.CommandRepo, l)
 	return &UseCase{
 		Auth:      authUc,

@@ -3,10 +3,7 @@ package persistent
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/Masterminds/squirrel"
-
 	"test_go/internal/entity"
 	"test_go/pkg/postgres"
 )
@@ -50,11 +47,12 @@ func (r *OperationRepo) GetById(ctx context.Context, id int64) (*entity.Operatio
 
 	sql, args, err := r.Builder.
 		Select(
-			"op.id", "op.created_at", "op.updated_at", "op.deleted_at", "op.name",
-			"op.description", "op.average_time", "c.system_name", "c.default_address",
+			"op.id", "op.created_at", "op.updated_at", "op.deleted_at",
+			"op.name", "op.description", "op.average_time",
+			"c.system_name", "c.default_address",
 		).
 		From("operations op").
-		LeftJoin("operation_commands opc ON op.id = opc.operation_id").
+		LeftJoin("operation_commands opc ON opc.operation_id = op.id").
 		LeftJoin("commands c ON opc.command_id = c.id").
 		Where("op.deleted_at IS NULL").
 		Where(squirrel.Eq{"op.id": id}).
@@ -70,55 +68,39 @@ func (r *OperationRepo) GetById(ctx context.Context, id int64) (*entity.Operatio
 	}
 	defer rows.Close()
 
-	var operation *entity.Operation
+	var e entity.Operation
+	e.Commands = []*entity.Command{}
 
 	for rows.Next() {
 		var (
-			opID                            int64
-			createdAt, updatedAt, deletedAt *time.Time
-			name, description               string
-			avgTime                         int64
-			systemName, defaultAddress      *string
+			systemName, defaultAddress *string
 		)
 
-		err := rows.Scan(
-			&opID, &createdAt, &updatedAt, &deletedAt,
-			&name, &description, &avgTime,
+		if err := rows.Scan(
+			&e.ID, &e.CreatedAt, &e.UpdatedAt, &e.DeletedAt,
+			&e.Name, &e.Description, &e.AverageTime,
 			&systemName, &defaultAddress,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
 		}
 
-		if operation == nil {
-			operation = &entity.Operation{
-				Entity: entity.Entity{
-					ID:        opID,
-					CreatedAt: *createdAt,
-					UpdatedAt: *updatedAt,
-					DeletedAt: deletedAt,
-				},
-				Name:        name,
-				Description: description,
-				AverageTime: avgTime,
-				Commands:    []*entity.Command{},
-			}
-		}
-
-		if systemName != nil {
-			cmd := &entity.Command{
+		if systemName != nil && defaultAddress != nil {
+			e.Commands = append(e.Commands, &entity.Command{
 				SystemName:     *systemName,
 				DefaultAddress: entity.Address(*defaultAddress),
-			}
-			operation.Commands = append(operation.Commands, cmd)
+			})
 		}
 	}
 
-	if operation == nil {
-		return nil, entity.ErrOperationNotFound
+	if len(e.Commands) == 0 {
+		e.Commands = nil
 	}
 
-	return operation, nil
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s - rows.Err: %w", op, err)
+	}
+
+	return &e, nil
 }
 
 func (r *OperationRepo) Update(ctx context.Context, e *entity.Operation) error {

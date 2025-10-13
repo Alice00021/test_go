@@ -67,11 +67,13 @@ type (
 	Swagger struct {
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}
-
+	// LocalFileStorage -.
 	LocalFileStorage struct {
 		BasePath   string `env:"LOCAL_FILE_STORAGE_BASE_PATH,required"`
 		ExportPath string `env:"LOCAL_FILE_STORAGE_EXPORT_PATH,required"`
+		JsonPath   string `env:"LOCAL_FILE_STORAGE_JSON_PATH,required"`
 	}
+	// EmailConfig -.
 	EmailConfig struct {
 		SMTPHost       string `env:"SMTP_HOST,required"`
 		SMTPPort       int    `env:"SMTP_PORT,required"`
@@ -79,6 +81,7 @@ type (
 		SenderPassword string `env:"SENDER_PASSWORD,required"`
 		VerifyBaseURL  string `env:"VERIFY_BASE_URL,required"`
 	}
+	// JWTConfig -.
 	JWTConfig struct {
 		SecretKey string `env:"JWT_SECRET_KEY,required"`
 	}

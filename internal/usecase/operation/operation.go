@@ -12,7 +12,7 @@ import (
 type UseCase struct {
 	transactional.Transactional
 	opRepo  repo.OperationRepo
-	opсRepo repo.OperationCommandsRepo
+	opcRepo repo.OperationCommandsRepo
 	cRepo   repo.CommandRepo
 	l       logger.Interface
 }
@@ -27,57 +27,59 @@ func New(
 	return &UseCase{
 		Transactional: t,
 		opRepo:        opRepo,
-		opсRepo:       opCmdRepo,
+		opcRepo:       opCmdRepo,
 		cRepo:         cmdRepo,
 		l:             l,
 	}
 }
 
 func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperationInput) (*entity.Operation, error) {
-	opName := "CommandUseCase - CreateOperation"
+	opName := "OperationUseCase - CreateOperation"
 
-	var createdOp *entity.Operation
-
+	var operation entity.Operation
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-
-		operation := &entity.Operation{
+		e := &entity.Operation{
 			Name:        inp.Name,
 			Description: inp.Description,
-			Commands:    make([]*entity.Command, len(inp.Commands)),
+			Commands:    []*entity.Command{},
 		}
 
-		for i, c := range inp.Commands {
-			cmd, err := uc.cRepo.GetBySystemName(txCtx, c.SystemName)
+		for _, c := range inp.Commands {
+			command, err := uc.cRepo.GetBySystemName(txCtx, c.SystemName)
 			if err != nil {
 				return fmt.Errorf("%s - cRepo.GetBySystemName: %w", opName, err)
 			}
-			cmd.DefaultAddress = c.Address
-			operation.Commands[i] = cmd
+			command.DefaultAddress = c.Address
+			e.Commands = append(e.Commands, command)
 		}
 
-		operation.SumAverageTime()
+		if err := e.SumAverageTime(); err != nil {
+			return fmt.Errorf("%s - operation.SumAverageTime(): %w", opName, err)
+		}
 
-		operationId, err := uc.opRepo.Create(txCtx, operation)
+		res, err := uc.opRepo.Create(txCtx, e)
 		if err != nil {
 			return fmt.Errorf("%s - opRepo.Create: %w", opName, err)
 		}
 
-		for _, command := range operation.Commands {
-			if err := uc.opсRepo.Create(txCtx, operationId.ID, command.ID); err != nil {
+		for _, command := range e.Commands {
+			if err := uc.opcRepo.Create(txCtx, res.ID, command.ID); err != nil {
 				return fmt.Errorf("%s - opсRepo.Create: %w", opName, err)
 			}
 		}
 
+		operation = *res
+		operation.Commands = e.Commands
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("%s - uc.RunInTransaction: %w", opName, err)
 	}
 
-	return createdOp, nil
+	return &operation, nil
 }
 
 func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperationInput) error {
-	opName := "UseCase - UpdateOperation"
+	opName := "OperationUseCase - UpdateOperation"
 
 	return uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		e := &entity.Operation{
@@ -93,13 +95,13 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 }
 
 func (uc *UseCase) DeleteOperation(ctx context.Context, id int64) error {
-	opName := "UseCase - DeleteOperation"
+	opName := "OperationUseCase - DeleteOperation"
 
 	return uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		if err := uc.opRepo.DeleteById(txCtx, id); err != nil {
 			return fmt.Errorf("%s - opRepo.DeleteById: %w", opName, err)
 		}
-		if err := uc.opсRepo.DeleteByOperationId(txCtx, id); err != nil {
+		if err := uc.opcRepo.DeleteByOperationId(txCtx, id); err != nil {
 			return fmt.Errorf("%s - opсRepo.DeleteByOperationId: %w", opName, err)
 		}
 		return nil

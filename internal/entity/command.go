@@ -40,3 +40,21 @@ type Command struct {
 	VolumeContainer  int64
 	DefaultAddress   Address
 }
+
+func ValidateUniqueReagentAddress(commands []Command) error {
+	addressMap := make(map[Address]string)
+
+	for _, cmd := range commands {
+		if cmd.DefaultAddress == "" {
+			continue
+		}
+
+		if _, exists := addressMap[cmd.DefaultAddress]; exists {
+			return ErrCommandDuplicateAddress
+		}
+
+		addressMap[cmd.DefaultAddress] = cmd.SystemName
+	}
+
+	return nil
+}

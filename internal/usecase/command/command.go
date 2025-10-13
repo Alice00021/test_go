@@ -3,8 +3,10 @@ package command
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"mime/multipart"
+	"os"
+	"test_go/config"
 	"test_go/internal/entity"
 	"test_go/internal/repo"
 	"test_go/pkg/logger"
@@ -13,27 +15,30 @@ import (
 
 type useCase struct {
 	transactional.Transactional
-	repo repo.CommandRepo
-	l    logger.Interface
+	repo        repo.CommandRepo
+	jsonStorage config.LocalFileStorage
+	l           logger.Interface
 }
 
 func New(t transactional.Transactional,
 	repo repo.CommandRepo,
+	jsonStorage config.LocalFileStorage,
 	l logger.Interface,
 ) *useCase {
 	return &useCase{
 		Transactional: t,
 		repo:          repo,
+		jsonStorage:   jsonStorage,
 		l:             l,
 	}
 }
 
-func (uc *useCase) UpdateCommands(ctx context.Context, fileHeader *multipart.FileHeader) error {
+func (uc *useCase) UpdateCommands(ctx context.Context) error {
 	op := "CommandUseCase - UpdateCommands"
 
-	file, err := fileHeader.Open()
+	file, err := os.Open(uc.jsonStorage.JsonPath)
 	if err != nil {
-		return fmt.Errorf("%s - fileHeader.Open: %w", op, err)
+		return fmt.Errorf("%s - open json file: %w", op, err)
 	}
 	defer file.Close()
 
@@ -77,12 +82,17 @@ func (uc *useCase) UpdateCommands(ctx context.Context, fileHeader *multipart.Fil
 		}
 		commands = append(commands, cmd)
 	}
+	if err := entity.ValidateUniqueReagentAddress(commands); err != nil {
+		if errors.Is(err, entity.ErrCommandDuplicateAddress) {
+			return err
+		}
+	}
 
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		for _, c := range commands {
-			existCommand, err := uc.repo.GetBySystemName(txCtx, string(c.SystemName))
+			existCommand, err := uc.repo.GetBySystemName(txCtx, c.SystemName)
 			if err != nil {
-				if err == entity.ErrCommandNotFound {
+				if errors.Is(err, entity.ErrCommandNotFound) {
 					if _, err := uc.repo.Create(txCtx, &c); err != nil {
 						return fmt.Errorf("%s - repo.Create: %w", op, err)
 					}

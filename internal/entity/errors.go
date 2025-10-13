@@ -22,7 +22,8 @@ var (
 	ErrCreateFile = errors.New("failed to create file")
 	ErrSaveFile   = errors.New("failed to save file")
 
-	ErrCommandNotFound = errors.New("command not found")
+	ErrCommandNotFound         = errors.New("command not found")
+	ErrCommandDuplicateAddress = errors.New("address is used by multiple commands")
 
 	ErrOperationNotFound = errors.New("operation not found")
 )
