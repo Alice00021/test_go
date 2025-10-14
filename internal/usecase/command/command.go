@@ -38,7 +38,7 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 
 	file, err := os.Open(uc.jsonStorage.JsonPath)
 	if err != nil {
-		return fmt.Errorf("%s - open json file: %w", op, err)
+		return fmt.Errorf("%s - os.Open: %w", op, err)
 	}
 	defer file.Close()
 
@@ -54,22 +54,11 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 		if !ok {
 			return fmt.Errorf("%s - invalid name format", op)
 		}
-		var name string
-		for _, n := range nameArray {
-			nMap, ok := n.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			locale, ok := nMap["locale"].(string)
-			if !ok || locale != "en" {
-				continue
-			}
-			value, ok := nMap["value"].(string)
-			if ok {
-				name = value
-				break
-			}
+		name, err := extractName(nameArray)
+		if err != nil {
+			return fmt.Errorf("%s - extractName: %w", op, err)
 		}
+
 		rawCmd["name"] = name
 
 		cmdBytes, err := json.Marshal(rawCmd)
@@ -86,6 +75,13 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 		if errors.Is(err, entity.ErrCommandDuplicateAddress) {
 			return err
 		}
+		return fmt.Errorf("%s - entity.ValidateUniqueReagentAddress: %w", op, err)
+	}
+	if err := entity.ValidateMaxVolumeAddress(commands); err != nil {
+		if errors.Is(err, entity.ErrCommandVolumeExceeded) {
+			return err
+		}
+		return fmt.Errorf("%s - entity.ValidateMaxVolumeAddress: %w", op, err)
 	}
 
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
@@ -94,16 +90,16 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 			if err != nil {
 				if errors.Is(err, entity.ErrCommandNotFound) {
 					if _, err := uc.repo.Create(txCtx, &c); err != nil {
-						return fmt.Errorf("%s - repo.Create: %w", op, err)
+						return fmt.Errorf("%s - uc.repo.Create: %w", op, err)
 					}
 					continue
 				}
-				return fmt.Errorf("%s - repo.GetBySystemName: %w", op, err)
+				return fmt.Errorf("%s - uc.repo.GetBySystemName: %w", op, err)
 			}
 
 			if existCommand.DefaultAddress != c.DefaultAddress {
 				if err := uc.repo.Update(txCtx, existCommand.ID, c.DefaultAddress); err != nil {
-					return fmt.Errorf("%s - repo.Update: %w", op, err)
+					return fmt.Errorf("%s - uc.repo.Update: %w", op, err)
 				}
 			}
 		}
@@ -112,4 +108,22 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 		return fmt.Errorf("%s - uc.RunInTransaction: %w", op, err)
 	}
 	return nil
+}
+
+func extractName(nameArray []interface{}) (string, error) {
+	for _, n := range nameArray {
+		nMap, ok := n.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		locale, ok := nMap["locale"].(string)
+		if !ok || locale != "en" {
+			continue
+		}
+		value, ok := nMap["value"].(string)
+		if ok {
+			return value, nil
+		}
+	}
+	return "", entity.ErrCommandNameNotFound
 }

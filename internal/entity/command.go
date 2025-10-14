@@ -42,18 +42,45 @@ type Command struct {
 }
 
 func ValidateUniqueReagentAddress(commands []Command) error {
-	addressMap := make(map[Address]string)
+	addressMap := make(map[Address]ReagentType)
 
 	for _, cmd := range commands {
 		if cmd.DefaultAddress == "" {
 			continue
 		}
 
-		if _, exists := addressMap[cmd.DefaultAddress]; exists {
-			return ErrCommandDuplicateAddress
+		if existingReagentType, exists := addressMap[cmd.DefaultAddress]; exists {
+			if existingReagentType != cmd.Reagent {
+				return ErrCommandDuplicateAddress
+			}
 		}
+		addressMap[cmd.DefaultAddress] = cmd.Reagent
+	}
 
-		addressMap[cmd.DefaultAddress] = cmd.SystemName
+	return nil
+}
+
+func ValidateMaxVolumeAddress(commands []Command) error {
+	addressVolumeMap := make(map[Address]int64)
+
+	for _, cmd := range commands {
+		if cmd.DefaultAddress == "" {
+			continue
+		}
+		addressVolumeMap[cmd.DefaultAddress] += cmd.VolumeContainer
+	}
+
+	for address, totalVolume := range addressVolumeMap {
+		if address == "SA" || address == "SB" || address == "SC" ||
+			address == "SE" || address == "SF" || address == "SG" || address == "SH" {
+			if totalVolume > 200 {
+				return ErrCommandVolumeExceeded
+			}
+		} else if address == "RA" || address == "RB" || address == "RC" || address == "RD" {
+			if totalVolume > 5000 {
+				return ErrCommandVolumeExceeded
+			}
+		}
 	}
 
 	return nil

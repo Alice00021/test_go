@@ -24,6 +24,7 @@ var (
 
 	ErrCommandNotFound         = errors.New("command not found")
 	ErrCommandDuplicateAddress = errors.New("address is used by multiple commands")
-
-	ErrOperationNotFound = errors.New("operation not found")
+	ErrCommandVolumeExceeded   = errors.New("volume exceeded")
+	ErrCommandNameNotFound     = errors.New("command name not found")
+	ErrOperationNotFound       = errors.New("operation not found")
 )
