@@ -1,5 +1,7 @@
 package entity
 
+import "encoding/json"
+
 type ReagentType string
 
 const (
@@ -41,7 +43,54 @@ type Command struct {
 	DefaultAddress   Address
 }
 
-func ValidateUniqueReagentAddress(commands []Command) error {
+// Временная структура для парсинга
+type CommandJSON struct {
+	Name []struct {
+		Locale string `json:"locale"`
+		Value  string `json:"value"`
+	} `json:"name"`
+	SystemName       string  `json:"systemName"`
+	Reagent          *string `json:"reagent"`
+	AverageTime      int64   `json:"averageTime"`
+	VolumeWaste      int64   `json:"volumeWaste"`
+	VolumeDriveFluid int64   `json:"volumeDriveFluid"`
+	VolumeContainer  int64   `json:"volumeContainer"`
+	DefaultAddress   *string `json:"defaultAddress"`
+}
+
+func (c *Command) UnmarshalJSON(data []byte) error {
+	var raw CommandJSON
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	for _, n := range raw.Name {
+		if n.Locale == "en" {
+			c.Name = n.Value
+			break
+		}
+	}
+	if c.Name == "" {
+		return ErrCommandNameNotFound
+	}
+
+	c.SystemName = raw.SystemName
+	c.AverageTime = raw.AverageTime
+	c.VolumeWaste = raw.VolumeWaste
+	c.VolumeDriveFluid = raw.VolumeDriveFluid
+	c.VolumeContainer = raw.VolumeContainer
+
+	if raw.Reagent != nil {
+		c.Reagent = ReagentType(*raw.Reagent)
+	}
+	if raw.DefaultAddress != nil {
+		c.DefaultAddress = Address(*raw.DefaultAddress)
+	}
+
+	return nil
+}
+
+func ValidateUniqueReagentAddress(commands []*Command) error {
 	addressMap := make(map[Address]ReagentType)
 
 	for _, cmd := range commands {
@@ -60,7 +109,7 @@ func ValidateUniqueReagentAddress(commands []Command) error {
 	return nil
 }
 
-func ValidateMaxVolumeAddress(commands []Command) error {
+func ValidateMaxVolumeAddress(commands []*Command) error {
 	addressVolumeMap := make(map[Address]int64)
 
 	for _, cmd := range commands {

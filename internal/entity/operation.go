@@ -9,11 +9,13 @@ type Operation struct {
 }
 
 type UpdateOperationInput struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          int64           `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Commands    []*CommandInput `json:"commands"`
 }
-type CreateCommand struct {
+
+type CommandInput struct {
 	SystemName string
 	Address    Address
 }
@@ -22,7 +24,7 @@ type CreateOperationInput struct {
 	Name        string
 	Description string
 	AverageTime int64
-	Commands    []*CreateCommand
+	Commands    []*CommandInput
 }
 
 func (e *Operation) SumAverageTime() error {

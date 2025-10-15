@@ -82,13 +82,19 @@ func (r *CommandRepo) GetById(ctx context.Context, id int64) (*entity.Command, e
 	return command, nil
 }
 
-func (r *CommandRepo) Update(ctx context.Context, id int64, defaultAddress entity.Address) error {
+func (r *CommandRepo) Update(ctx context.Context, inp *entity.Command) error {
 	op := "CommandRepo - Update"
 
 	sqlBuilder := r.Builder.
 		Update("commands").
-		Set("default_address", defaultAddress).
-		Where(squirrel.Eq{"id": id})
+		Set("name", inp.Name).
+		Set("reagent", inp.Reagent).
+		Set("average_time", inp.AverageTime).
+		Set("volume_waste", inp.VolumeWaste).
+		Set("volume_drive_fluid", inp.VolumeDriveFluid).
+		Set("volume_container", inp.VolumeContainer).
+		Set("default_address", inp.DefaultAddress).
+		Where(squirrel.Eq{"id": inp.ID})
 
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {

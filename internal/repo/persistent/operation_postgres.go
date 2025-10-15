@@ -110,6 +110,7 @@ func (r *OperationRepo) Update(ctx context.Context, e *entity.Operation) error {
 		Update("operations").
 		Set("name", e.Name).
 		Set("description", e.Description).
+		Set("average_time", e.AverageTime).
 		Where(squirrel.Eq{"id": e.ID})
 
 	sql, args, err := sqlBuilder.ToSql()

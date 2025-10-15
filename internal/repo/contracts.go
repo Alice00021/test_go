@@ -35,17 +35,22 @@ type (
 	CommandRepo interface {
 		Create(context.Context, *entity.Command) (*entity.Command, error)
 		GetById(context.Context, int64) (*entity.Command, error)
-		Update(context.Context, int64, entity.Address) error
+		Update(context.Context, *entity.Command) error
 		GetBySystemName(context.Context, string) (*entity.Command, error)
 	}
+
 	OperationRepo interface {
 		Create(context.Context, *entity.Operation) (*entity.Operation, error)
 		GetById(context.Context, int64) (*entity.Operation, error)
 		Update(context.Context, *entity.Operation) error
 		DeleteById(context.Context, int64) error
 	}
+
 	OperationCommandsRepo interface {
-		Create(context.Context, int64, int64) error
+		Create(context.Context, int64, int64, entity.Address) error
+		GetCommandIdsByOperation(context.Context, int64) ([]int64, error)
+		Update(context.Context, int64, int64, entity.Address) error
 		DeleteByOperationId(context.Context, int64) error
+		DeleteIfNotInOperationIds(context.Context, int64, []int64) error
 	}
 )
