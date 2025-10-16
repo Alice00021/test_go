@@ -141,3 +141,34 @@ func (r *CommandRepo) GetBySystemName(ctx context.Context, systemName string) (*
 	}
 	return command, nil
 }
+
+func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string) ([]*entity.Command, error) {
+	op := "CommandRepo - GetBySystemNames"
+
+	sql, args, err := r.Builder.
+		Select(
+			"id", "created_at", "updated_at", "deleted_at", "name",
+			"system_name", "reagent", "average_time", "volume_waste", "volume_drive_fluid",
+			"volume_container", "default_address",
+		).
+		From("commands").
+		Where("deleted_at IS NULL").
+		Where(squirrel.Eq{"system_name": systemNames}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s - r.Builder: %w", op, err)
+	}
+
+	client := r.GetClient(ctx)
+	rows, err := client.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s - client.Query: %w", op, err)
+	}
+
+	commands, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByName[entity.Command])
+	if err != nil {
+		return nil, fmt.Errorf("%s - pgx.CollectRows: %w", op, err)
+	}
+
+	return commands, nil
+}

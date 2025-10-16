@@ -90,8 +90,9 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func ValidateUniqueReagentAddress(commands []*Command) error {
+func ValidateCommands(commands []*Command) error {
 	addressMap := make(map[Address]ReagentType)
+	addressVolumeMap := make(map[Address]int64)
 
 	for _, cmd := range commands {
 		if cmd.DefaultAddress == "" {
@@ -104,21 +105,8 @@ func ValidateUniqueReagentAddress(commands []*Command) error {
 			}
 		}
 		addressMap[cmd.DefaultAddress] = cmd.Reagent
-	}
-
-	return nil
-}
-
-func ValidateMaxVolumeAddress(commands []*Command) error {
-	addressVolumeMap := make(map[Address]int64)
-
-	for _, cmd := range commands {
-		if cmd.DefaultAddress == "" {
-			continue
-		}
 		addressVolumeMap[cmd.DefaultAddress] += cmd.VolumeContainer
 	}
-
 	for address, totalVolume := range addressVolumeMap {
 		if address == "SA" || address == "SB" || address == "SC" ||
 			address == "SE" || address == "SF" || address == "SG" || address == "SH" {

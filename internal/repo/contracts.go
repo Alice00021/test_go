@@ -37,6 +37,7 @@ type (
 		GetById(context.Context, int64) (*entity.Command, error)
 		Update(context.Context, *entity.Command) error
 		GetBySystemName(context.Context, string) (*entity.Command, error)
+		GetBySystemNames(context.Context, []string) ([]*entity.Command, error)
 	}
 
 	OperationRepo interface {

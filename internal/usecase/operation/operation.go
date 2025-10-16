@@ -45,26 +45,31 @@ func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperati
 			Commands:    []*entity.Command{},
 		}
 
+		systemNames := make([]string, 0, len(inp.Commands))
 		for _, c := range inp.Commands {
-			command, err := uc.cRepo.GetBySystemName(txCtx, c.SystemName)
-			if err != nil {
-				return fmt.Errorf("%s - uc.cRepo.GetBySystemName: %w", op, err)
-			}
-			command.DefaultAddress = c.Address
-			e.Commands = append(e.Commands, command)
+			systemNames = append(systemNames, c.SystemName)
 		}
-		if err := entity.ValidateUniqueReagentAddress(e.Commands); err != nil {
+
+		commands, err := uc.cRepo.GetBySystemNames(txCtx, systemNames)
+		if err != nil {
+			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
+		}
+
+		for _, command := range commands {
+			for _, inputCommand := range inp.Commands {
+				if command.SystemName == inputCommand.SystemName {
+					command.DefaultAddress = inputCommand.Address
+					e.Commands = append(e.Commands, command)
+					break
+				}
+			}
+		}
+
+		if err := entity.ValidateCommands(e.Commands); err != nil {
 			if errors.Is(err, entity.ErrCommandDuplicateAddress) {
 				return err
 			}
-			return fmt.Errorf("%s - entity.ValidateUniqueReagentAddress: %w", op, err)
-		}
-
-		if err := entity.ValidateMaxVolumeAddress(e.Commands); err != nil {
-			if errors.Is(err, entity.ErrCommandVolumeExceeded) {
-				return err
-			}
-			return fmt.Errorf("%s - entity.ValidateMaxVolumeAddress: %w", op, err)
+			return fmt.Errorf("%s - entity.ValidateCommands: %w", op, err)
 		}
 
 		if err := e.SumAverageTime(); err != nil {
@@ -100,38 +105,48 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 		if err != nil {
 			return fmt.Errorf("%s - uc.opcRepo.GetCommandIdsByOperation: %w", op, err)
 		}
+
 		currentCommandsMap := make(map[int64]struct{}, len(currentCommandIds))
 		for _, id := range currentCommandIds {
 			currentCommandsMap[id] = struct{}{}
 		}
 
+		systemNames := make([]string, 0, len(inp.Commands))
+		for _, c := range inp.Commands {
+			systemNames = append(systemNames, c.SystemName)
+		}
+
+		commands, err := uc.cRepo.GetBySystemNames(txCtx, systemNames)
+		if err != nil {
+			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
+		}
+
+		commandMap := make(map[string]*entity.Command)
+		for _, cmd := range commands {
+			commandMap[cmd.SystemName] = cmd
+		}
+
 		var updatedCommands []*entity.Command
 		newCommandIds := make([]int64, 0, len(inp.Commands))
 
-		for _, cmdInput := range inp.Commands {
-			command, err := uc.cRepo.GetBySystemName(txCtx, cmdInput.SystemName)
-			if err != nil {
-				return fmt.Errorf("%s - uc.cRepo.GetBySystemName: %w", op, err)
+		for _, commandInput := range inp.Commands {
+			cmd, ok := commandMap[commandInput.SystemName]
+			if !ok {
+				return entity.ErrCommandNotFound
 			}
-			updatedCommands = append(updatedCommands, command)
-			newCommandIds = append(newCommandIds, command.ID)
+
+			newCommand := *cmd
+			newCommand.DefaultAddress = commandInput.Address
+
+			updatedCommands = append(updatedCommands, &newCommand)
+			newCommandIds = append(newCommandIds, newCommand.ID)
 		}
-		
-		for i, cmdInput := range inp.Commands {
-			updatedCommands[i].DefaultAddress = cmdInput.Address
-		}
-		if err := entity.ValidateUniqueReagentAddress(updatedCommands); err != nil {
+
+		if err := entity.ValidateCommands(updatedCommands); err != nil {
 			if errors.Is(err, entity.ErrCommandDuplicateAddress) {
 				return err
 			}
-			return fmt.Errorf("%s - entity.ValidateUniqueReagentAddress: %w", op, err)
-		}
-
-		if err := entity.ValidateMaxVolumeAddress(updatedCommands); err != nil {
-			if errors.Is(err, entity.ErrCommandVolumeExceeded) {
-				return err
-			}
-			return fmt.Errorf("%s - entity.ValidateMaxVolumeAddress: %w", op, err)
+			return fmt.Errorf("%s - entity.ValidateCommands: %w", op, err)
 		}
 
 		for i, commandInput := range inp.Commands {
