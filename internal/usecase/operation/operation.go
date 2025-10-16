@@ -55,14 +55,19 @@ func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperati
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
 
+		inputMap := make(map[string]entity.Address, len(inp.Commands))
+		for _, c := range inp.Commands {
+			inputMap[c.SystemName] = c.Address
+		}
+
 		for _, command := range commands {
-			for _, inputCommand := range inp.Commands {
-				if command.SystemName == inputCommand.SystemName {
-					command.DefaultAddress = inputCommand.Address
-					e.Commands = append(e.Commands, command)
-					break
-				}
+			address, ok := inputMap[command.SystemName]
+			if !ok {
+				return entity.ErrCommandNotFound
 			}
+			newCommand := *command
+			newCommand.DefaultAddress = address
+			e.Commands = append(e.Commands, &newCommand)
 		}
 
 		if err := entity.ValidateCommands(e.Commands); err != nil {
@@ -106,6 +111,7 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 			return fmt.Errorf("%s - uc.opcRepo.GetCommandIdsByOperation: %w", op, err)
 		}
 
+		// map для быстрого поиска, какие команды уже есть в операции
 		currentCommandsMap := make(map[int64]struct{}, len(currentCommandIds))
 		for _, id := range currentCommandIds {
 			currentCommandsMap[id] = struct{}{}
@@ -120,12 +126,13 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 		if err != nil {
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
-
+		// map для быстрого поиска команд по systemName
 		commandMap := make(map[string]*entity.Command)
 		for _, cmd := range commands {
 			commandMap[cmd.SystemName] = cmd
 		}
 
+		// список обновленных команд для операции
 		var updatedCommands []*entity.Command
 		newCommandIds := make([]int64, 0, len(inp.Commands))
 

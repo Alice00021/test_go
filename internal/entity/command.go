@@ -108,12 +108,12 @@ func ValidateCommands(commands []*Command) error {
 		addressVolumeMap[cmd.DefaultAddress] += cmd.VolumeContainer
 	}
 	for address, totalVolume := range addressVolumeMap {
-		if address == "SA" || address == "SB" || address == "SC" ||
-			address == "SE" || address == "SF" || address == "SG" || address == "SH" {
+		if address == AddressSA || address == AddressSB || address == AddressSC || address == AddressSD ||
+			address == AddressSE || address == AddressSF || address == AddressSG || address == AddressSH {
 			if totalVolume > 200 {
 				return ErrCommandVolumeExceeded
 			}
-		} else if address == "RA" || address == "RB" || address == "RC" || address == "RD" {
+		} else if address == AddressRA || address == AddressRB || address == AddressRC || address == AddressRD {
 			if totalVolume > 5000 {
 				return ErrCommandVolumeExceeded
 			}
