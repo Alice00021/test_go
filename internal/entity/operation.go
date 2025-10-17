@@ -21,6 +21,7 @@ type UpdateOperationInput struct {
 }
 
 type CommandInput struct {
+	ID         int64
 	SystemName string
 	Address    Address
 }

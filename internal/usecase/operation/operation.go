@@ -114,11 +114,16 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 		if err != nil {
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
+
+		//ids, err := uc.opcRepo.GetIdsByOperation(txCtx, inp.ID)
+		//if err != nil {
+		//	return fmt.Errorf("%s - uc.opcRepo.GetIdsByOperation: %w", op, err)
+		//}
+
 		var (
 			operationCommands []*entity.OperationCommand
 			mapContainer      = make(map[entity.Address]entity.Container)
 			totalTime         int64
-			newCommandIds     []int64
 		)
 
 		for _, commandInput := range inp.Commands {
@@ -152,15 +157,6 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 
 			operationCommands = append(operationCommands, operationCommand)
 			totalTime += command.AverageTime
-			newCommandIds = append(newCommandIds, command.ID)
-		}
-
-		if err := uc.opcRepo.DeleteByOperationId(txCtx, inp.ID); err != nil {
-			return fmt.Errorf("%s - uc.opcRepo.DeleteByOperationId: %w", op, err)
-		}
-
-		if err := uc.opcRepo.Create(txCtx, inp.ID, operationCommands); err != nil {
-			return fmt.Errorf("%s - uc.opcRepo.Create: %w", op, err)
 		}
 
 		operation := &entity.Operation{

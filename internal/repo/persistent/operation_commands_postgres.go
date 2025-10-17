@@ -41,15 +41,13 @@ func (r *OperationCommandsRepo) Create(ctx context.Context, operationId int64, c
 	return nil
 }
 
-func (r *OperationCommandsRepo) Update(ctx context.Context, operationId int64, commandId int64, address entity.Address) error {
+func (r *OperationCommandsRepo) Update(ctx context.Context, id int64, address entity.Address) error {
 	op := "OperationCommandsRepo - Update"
 
 	sqlBuilder := r.Builder.
 		Update("operation_commands").
 		Set("address", address).
-		Where(squirrel.Eq{
-			"operation_id": operationId,
-			"command_id":   commandId})
+		Where(squirrel.Eq{"id": id})
 
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -64,11 +62,11 @@ func (r *OperationCommandsRepo) Update(ctx context.Context, operationId int64, c
 	return nil
 }
 
-func (r *OperationCommandsRepo) GetCommandIdsByOperation(ctx context.Context, operationID int64) (map[int64]struct{}, error) {
+func (r *OperationCommandsRepo) GetIdsByOperation(ctx context.Context, operationID int64) ([]int64, error) {
 	op := "OperationCommandsRepo - GetCommandIdsByOperation"
 
 	sql, args, err := r.Builder.
-		Select("command_id").
+		Select("id").
 		From("operation_commands").
 		Where(squirrel.Eq{"operation_id": operationID}).
 		ToSql()
@@ -83,16 +81,15 @@ func (r *OperationCommandsRepo) GetCommandIdsByOperation(ctx context.Context, op
 	}
 	defer rows.Close()
 
-	commandIdsMap := make(map[int64]struct{})
-
+	var ids []int64
 	for rows.Next() {
-		var commandId int64
-		if err := rows.Scan(&commandId); err != nil {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
 		}
-		commandIdsMap[commandId] = struct{}{}
+		ids = append(ids, id)
 	}
-	return commandIdsMap, nil
+	return ids, nil
 }
 
 func (r *OperationCommandsRepo) DeleteByOperationId(ctx context.Context, operationId int64) error {
