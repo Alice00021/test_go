@@ -46,6 +46,7 @@ func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperati
 		}
 
 		systemNames := make([]string, 0, len(inp.Commands))
+
 		for _, c := range inp.Commands {
 			systemNames = append(systemNames, c.SystemName)
 		}
@@ -55,18 +56,13 @@ func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperati
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
 
-		inputMap := make(map[string]entity.Address, len(inp.Commands))
-		for _, c := range inp.Commands {
-			inputMap[c.SystemName] = c.Address
-		}
-
 		for _, command := range commands {
-			address, ok := inputMap[command.SystemName]
+			cmdTemplate, ok := commands[command.SystemName]
 			if !ok {
 				return entity.ErrCommandNotFound
 			}
-			newCommand := *command
-			newCommand.DefaultAddress = address
+			newCommand := cmdTemplate
+			newCommand.DefaultAddress = command.DefaultAddress
 			e.Commands = append(e.Commands, &newCommand)
 		}
 
@@ -111,7 +107,6 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 			return fmt.Errorf("%s - uc.opcRepo.GetCommandIdsByOperation: %w", op, err)
 		}
 
-		// map для быстрого поиска, какие команды уже есть в операции
 		currentCommandsMap := make(map[int64]struct{}, len(currentCommandIds))
 		for _, id := range currentCommandIds {
 			currentCommandsMap[id] = struct{}{}
@@ -126,27 +121,26 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 		if err != nil {
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
-		// map для быстрого поиска команд по systemName
-		commandMap := make(map[string]*entity.Command)
-		for _, cmd := range commands {
-			commandMap[cmd.SystemName] = cmd
-		}
 
-		// список обновленных команд для операции
-		var updatedCommands []*entity.Command
-		newCommandIds := make([]int64, 0, len(inp.Commands))
+		var (
+			newCommandIds   []int64
+			updatedCommands []*entity.Command
+			totalTime       int64
+		)
 
 		for _, commandInput := range inp.Commands {
-			cmd, ok := commandMap[commandInput.SystemName]
+			cmd, ok := commands[commandInput.SystemName]
 			if !ok {
 				return entity.ErrCommandNotFound
 			}
 
-			newCommand := *cmd
+			newCommand := cmd
 			newCommand.DefaultAddress = commandInput.Address
+			totalTime += newCommand.AverageTime
 
 			updatedCommands = append(updatedCommands, &newCommand)
 			newCommandIds = append(newCommandIds, newCommand.ID)
+
 		}
 
 		if err := entity.ValidateCommands(updatedCommands); err != nil {
@@ -156,14 +150,13 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 			return fmt.Errorf("%s - entity.ValidateCommands: %w", op, err)
 		}
 
-		for i, commandInput := range inp.Commands {
-			commandID := updatedCommands[i].ID
-			if _, exists := currentCommandsMap[commandID]; exists {
-				if err := uc.opcRepo.Update(txCtx, inp.ID, commandID, commandInput.Address); err != nil {
-					return fmt.Errorf("%s - uc.opcRepo.UpdateAddress: %w", op, err)
+		for _, newCommand := range updatedCommands {
+			if _, exists := currentCommandsMap[newCommand.ID]; exists {
+				if err := uc.opcRepo.Update(txCtx, inp.ID, newCommand.ID, newCommand.DefaultAddress); err != nil {
+					return fmt.Errorf("%s - uc.opcRepo.Update: %w", op, err)
 				}
 			} else {
-				if err := uc.opcRepo.Create(txCtx, inp.ID, commandID, commandInput.Address); err != nil {
+				if err := uc.opcRepo.Create(txCtx, inp.ID, newCommand.ID, newCommand.DefaultAddress); err != nil {
 					return fmt.Errorf("%s - uc.opcRepo.Create: %w", op, err)
 				}
 			}
@@ -172,19 +165,15 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 		if err := uc.opcRepo.DeleteIfNotInOperationIds(txCtx, inp.ID, newCommandIds); err != nil {
 			return fmt.Errorf("%s - uc.opcRepo.DeleteIfNotInOperationIds: %w", op, err)
 		}
-		var totalTime int64
-		for _, cmd := range updatedCommands {
-			totalTime += cmd.AverageTime
-		}
 
-		op := &entity.Operation{
+		operation := &entity.Operation{
 			Entity:      entity.Entity{ID: inp.ID},
 			Name:        inp.Name,
 			Description: inp.Description,
 			AverageTime: totalTime,
 		}
 
-		if err := uc.opRepo.Update(txCtx, op); err != nil {
+		if err := uc.opRepo.Update(txCtx, operation); err != nil {
 			return fmt.Errorf("%s - uc.opRepo.Update: %w", op, err)
 		}
 

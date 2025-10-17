@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"test_go/config"
@@ -47,21 +46,28 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 		return fmt.Errorf("%s - json.Decode: %w", op, err)
 	}
 
+	systemNames := make([]string, len(commands))
+	for i := range commands {
+		systemNames[i] = commands[i].SystemName
+	}
+
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		for _, c := range commands {
-			existCommand, err := uc.repo.GetBySystemName(txCtx, c.SystemName)
-			if err != nil {
-				if errors.Is(err, entity.ErrCommandNotFound) {
-					if _, err := uc.repo.Create(txCtx, &c); err != nil {
-						return fmt.Errorf("%s - uc.repo.Create: %w", op, err)
-					}
-					continue
+		existingCommands, err := uc.repo.GetBySystemNames(txCtx, systemNames)
+		if err != nil {
+			return fmt.Errorf("%s - uc.repo.GetBySystemNames: %w", op, err)
+		}
+
+		for i := range commands {
+			cmd := &commands[i]
+			if existingCmd, exists := existingCommands[cmd.SystemName]; exists {
+				cmd.ID = existingCmd.ID
+				if err := uc.repo.Update(txCtx, cmd); err != nil {
+					return fmt.Errorf("%s - uc.repo.Update: %w", op, err)
 				}
-				return fmt.Errorf("%s - uc.repo.GetBySystemName: %w", op, err)
-			}
-			c.ID = existCommand.ID
-			if err := uc.repo.Update(txCtx, &c); err != nil {
-				return fmt.Errorf("%s - uc.repo.Update: %w", op, err)
+			} else {
+				if _, err := uc.repo.Create(txCtx, cmd); err != nil {
+					return fmt.Errorf("%s - uc.repo.Create: %w", op, err)
+				}
 			}
 		}
 		return nil

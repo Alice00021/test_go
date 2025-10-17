@@ -109,40 +109,7 @@ func (r *CommandRepo) Update(ctx context.Context, inp *entity.Command) error {
 	return nil
 }
 
-func (r *CommandRepo) GetBySystemName(ctx context.Context, systemName string) (*entity.Command, error) {
-	op := "CommandRepo - GetBySystemName"
-
-	sql, args, err := r.Builder.
-		Select(
-			"id", "created_at", "updated_at", "deleted_at", "name",
-			"system_name", "reagent", "average_time", "volume_waste", "volume_drive_fluid",
-			"volume_container", "default_address",
-		).
-		From("commands").
-		Where("deleted_at IS NULL").
-		Where(squirrel.Eq{"system_name": systemName}).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("%s - r.Builder: %w", op, err)
-	}
-
-	client := r.GetClient(ctx)
-	rows, err := client.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, fmt.Errorf("%s - client.Query: %w", op, err)
-	}
-
-	command, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[entity.Command])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, entity.ErrCommandNotFound
-		}
-		return nil, fmt.Errorf("%s - pgx.CollectOneRow: %w", op, err)
-	}
-	return command, nil
-}
-
-func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string) ([]*entity.Command, error) {
+func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string) (map[string]entity.Command, error) {
 	op := "CommandRepo - GetBySystemNames"
 
 	sql, args, err := r.Builder.
@@ -165,10 +132,26 @@ func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string
 		return nil, fmt.Errorf("%s - client.Query: %w", op, err)
 	}
 
-	commands, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByName[entity.Command])
-	if err != nil {
-		return nil, fmt.Errorf("%s - pgx.CollectRows: %w", op, err)
-	}
+	defer rows.Close()
 
-	return commands, nil
+	items := make(map[string]entity.Command)
+
+	for rows.Next() {
+		var e entity.Command
+
+		err = rows.Scan(
+			&e.ID, &e.CreatedAt, &e.UpdatedAt, &e.DeletedAt, &e.Name, &e.SystemName,
+			&e.Reagent, &e.AverageTime, &e.VolumeWaste, &e.VolumeDriveFluid,
+			&e.VolumeContainer, &e.DefaultAddress,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
+		}
+
+		items[e.SystemName] = e
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s - rows.Err: %w", op, err)
+	}
+	return items, nil
 }
