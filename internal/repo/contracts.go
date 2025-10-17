@@ -36,7 +36,7 @@ type (
 		Create(context.Context, *entity.Command) (*entity.Command, error)
 		GetById(context.Context, int64) (*entity.Command, error)
 		Update(context.Context, *entity.Command) error
-		GetBySystemNames(context.Context, []string) (map[string]entity.Command, error)
+		GetBySystemNames(context.Context) (map[string]entity.Command, error)
 	}
 
 	OperationRepo interface {
@@ -47,8 +47,8 @@ type (
 	}
 
 	OperationCommandsRepo interface {
-		Create(context.Context, int64, int64, entity.Address) error
-		GetCommandIdsByOperation(context.Context, int64) ([]int64, error)
+		Create(context.Context, int64, []*entity.OperationCommand) error
+		GetCommandIdsByOperation(context.Context, int64) (map[int64]struct{}, error)
 		Update(context.Context, int64, int64, entity.Address) error
 		DeleteByOperationId(context.Context, int64) error
 		DeleteIfNotInOperationIds(context.Context, int64, []int64) error

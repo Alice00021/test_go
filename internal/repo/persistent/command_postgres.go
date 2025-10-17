@@ -109,7 +109,7 @@ func (r *CommandRepo) Update(ctx context.Context, inp *entity.Command) error {
 	return nil
 }
 
-func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string) (map[string]entity.Command, error) {
+func (r *CommandRepo) GetBySystemNames(ctx context.Context) (map[string]entity.Command, error) {
 	op := "CommandRepo - GetBySystemNames"
 
 	sql, args, err := r.Builder.
@@ -120,7 +120,6 @@ func (r *CommandRepo) GetBySystemNames(ctx context.Context, systemNames []string
 		).
 		From("commands").
 		Where("deleted_at IS NULL").
-		Where(squirrel.Eq{"system_name": systemNames}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%s - r.Builder: %w", op, err)

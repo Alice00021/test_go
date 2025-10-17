@@ -49,7 +49,7 @@ func (r *OperationRepo) GetById(ctx context.Context, id int64) (*entity.Operatio
 		Select(
 			"op.id", "op.created_at", "op.updated_at", "op.deleted_at",
 			"op.name", "op.description", "op.average_time",
-			"c.system_name", "c.default_address",
+			"c.id", "c.system_name", "c.default_address",
 		).
 		From("operations op").
 		LeftJoin("operation_commands opc ON opc.operation_id = op.id").
@@ -69,35 +69,50 @@ func (r *OperationRepo) GetById(ctx context.Context, id int64) (*entity.Operatio
 	defer rows.Close()
 
 	var e entity.Operation
-	e.Commands = []*entity.Command{}
+	e.Commands = []*entity.OperationCommand{}
 
 	for rows.Next() {
 		var (
+			commandId                  *int64
 			systemName, defaultAddress *string
 		)
 
 		if err := rows.Scan(
 			&e.ID, &e.CreatedAt, &e.UpdatedAt, &e.DeletedAt,
 			&e.Name, &e.Description, &e.AverageTime,
-			&systemName, &defaultAddress,
+			&commandId, &systemName, &defaultAddress,
 		); err != nil {
 			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
 		}
 
-		if systemName != nil && defaultAddress != nil {
-			e.Commands = append(e.Commands, &entity.Command{
-				SystemName:     *systemName,
-				DefaultAddress: entity.Address(*defaultAddress),
+		if commandId != nil {
+			addr := entity.Address("")
+			if defaultAddress != nil {
+				addr = entity.Address(*defaultAddress)
+			}
+
+			sysName := ""
+			if systemName != nil {
+				sysName = *systemName
+			}
+
+			e.Commands = append(e.Commands, &entity.OperationCommand{
+				Command: entity.Command{
+					Entity:         entity.Entity{ID: *commandId},
+					SystemName:     sysName,
+					DefaultAddress: addr,
+				},
+				Address: addr,
 			})
 		}
 	}
 
-	if len(e.Commands) == 0 {
-		e.Commands = nil
-	}
-
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("%s - rows.Err: %w", op, err)
+	}
+
+	if len(e.Commands) == 0 {
+		e.Commands = nil
 	}
 
 	return &e, nil

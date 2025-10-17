@@ -1,11 +1,16 @@
 package entity
 
+type OperationCommand struct {
+	Command
+	Address Address
+}
+
 type Operation struct {
 	Entity
 	Name        string
 	Description string
 	AverageTime int64
-	Commands    []*Command
+	Commands    []*OperationCommand
 }
 
 type UpdateOperationInput struct {

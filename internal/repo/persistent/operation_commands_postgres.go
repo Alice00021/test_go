@@ -16,19 +16,23 @@ func NewOperationCommandsRepo(pg *postgres.Postgres) *OperationCommandsRepo {
 	return &OperationCommandsRepo{pg}
 }
 
-func (r *OperationCommandsRepo) Create(ctx context.Context, operationId int64, commandId int64, address entity.Address) error {
+func (r *OperationCommandsRepo) Create(ctx context.Context, operationId int64, commands []*entity.OperationCommand) error {
 	op := "OperationCommandsRepo - Create"
 
-	sql, args, err := r.Builder.
-		Insert("operation_commands").
-		Columns("operation_id", "command_id", "address").
-		Values(operationId, commandId, address).
-		ToSql()
+	builder := r.Builder.Insert("operation_commands").
+		Columns("operation_id", "command_id", "address")
+
+	for _, command := range commands {
+		builder = builder.Values(operationId, command.ID, command.Address)
+	}
+
+	sql, args, err := builder.ToSql()
 	if err != nil {
 		return fmt.Errorf("%s - r.Builder: %w", op, err)
 	}
 
 	client := r.GetClient(ctx)
+
 	_, err = client.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("%s - client.Exec: %w", op, err)
@@ -60,10 +64,9 @@ func (r *OperationCommandsRepo) Update(ctx context.Context, operationId int64, c
 	return nil
 }
 
-func (r *OperationCommandsRepo) GetCommandIdsByOperation(ctx context.Context, operationID int64) ([]int64, error) {
+func (r *OperationCommandsRepo) GetCommandIdsByOperation(ctx context.Context, operationID int64) (map[int64]struct{}, error) {
 	op := "OperationCommandsRepo - GetCommandIdsByOperation"
 
-	var commandIds []int64
 	sql, args, err := r.Builder.
 		Select("command_id").
 		From("operation_commands").
@@ -79,22 +82,24 @@ func (r *OperationCommandsRepo) GetCommandIdsByOperation(ctx context.Context, op
 		return nil, fmt.Errorf("%s - client.Query: %w", op, err)
 	}
 	defer rows.Close()
+
+	commandIdsMap := make(map[int64]struct{})
+
 	for rows.Next() {
 		var commandId int64
 		if err := rows.Scan(&commandId); err != nil {
 			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
 		}
-		commandIds = append(commandIds, commandId)
+		commandIdsMap[commandId] = struct{}{}
 	}
-	return commandIds, nil
+	return commandIdsMap, nil
 }
 
 func (r *OperationCommandsRepo) DeleteByOperationId(ctx context.Context, operationId int64) error {
 	op := "OperationCommandsRepo - Delete"
 
 	sql, args, err := r.Builder.
-		Update("operation_commands").
-		Set("deleted_at", "NOW()").
+		Delete("operation_commands").
 		Where("deleted_at IS NULL").
 		Where(squirrel.Eq{"operation_id": operationId}).
 		ToSql()

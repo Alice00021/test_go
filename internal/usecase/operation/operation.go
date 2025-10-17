@@ -2,7 +2,6 @@ package operation
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"test_go/internal/entity"
 	"test_go/internal/repo"
@@ -42,54 +41,63 @@ func (uc *UseCase) CreateOperation(ctx context.Context, inp entity.CreateOperati
 		e := &entity.Operation{
 			Name:        inp.Name,
 			Description: inp.Description,
-			Commands:    []*entity.Command{},
+			Commands:    []*entity.OperationCommand{},
 		}
 
-		systemNames := make([]string, 0, len(inp.Commands))
-
-		for _, c := range inp.Commands {
-			systemNames = append(systemNames, c.SystemName)
-		}
-
-		commands, err := uc.cRepo.GetBySystemNames(txCtx, systemNames)
+		mapCommands, err := uc.cRepo.GetBySystemNames(txCtx)
 		if err != nil {
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
 
-		for _, command := range commands {
-			cmdTemplate, ok := commands[command.SystemName]
+		var operationCommands []*entity.OperationCommand
+		mapContainer := make(map[entity.Address]entity.Container)
+		var totalTime int64
+
+		for _, commandInput := range inp.Commands {
+			command, ok := mapCommands[commandInput.SystemName]
 			if !ok {
 				return entity.ErrCommandNotFound
 			}
-			newCommand := cmdTemplate
-			newCommand.DefaultAddress = command.DefaultAddress
-			e.Commands = append(e.Commands, &newCommand)
-		}
 
-		if err := entity.ValidateCommands(e.Commands); err != nil {
-			if errors.Is(err, entity.ErrCommandDuplicateAddress) {
-				return err
+			container, ok := mapContainer[commandInput.Address]
+			if !ok {
+				container = entity.Container{
+					Address:     commandInput.Address,
+					ReagentType: command.Reagent,
+					Volume:      command.VolumeContainer,
+				}
+			} else if container.ReagentType != command.Reagent {
+				return entity.ErrCommandDuplicateAddress
+			} else {
+				container.Volume += command.VolumeContainer
 			}
-			return fmt.Errorf("%s - entity.ValidateCommands: %w", op, err)
-		}
+			if !container.IsValidVolume() {
+				return entity.ErrCommandVolumeExceeded
+			}
+			mapContainer[commandInput.Address] = container
 
-		if err := e.SumAverageTime(); err != nil {
-			return fmt.Errorf("%s - e.SumAverageTime(): %w", op, err)
+			operationCommand := &entity.OperationCommand{
+				Command: command,
+				Address: commandInput.Address,
+			}
+
+			operationCommands = append(operationCommands, operationCommand)
+			totalTime += command.AverageTime
 		}
+		e.AverageTime = totalTime
 
 		res, err := uc.opRepo.Create(txCtx, e)
 		if err != nil {
 			return fmt.Errorf("%s - uc.opRepo.Create: %w", op, err)
 		}
 
-		for _, command := range e.Commands {
-			if err := uc.opcRepo.Create(txCtx, res.ID, command.ID, command.DefaultAddress); err != nil {
-				return fmt.Errorf("%s - uc.opсRepo.Create: %w", op, err)
-			}
+		if err := uc.opcRepo.Create(txCtx, res.ID, operationCommands); err != nil {
+			return fmt.Errorf("%s - uc.opсRepo.Create: %w", op, err)
 		}
 
 		operation = *res
-		operation.Commands = e.Commands
+		operation.Commands = operationCommands
+
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("%s - uc.RunInTransaction: %w", op, err)
@@ -102,68 +110,57 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 	op := "OperationUseCase - UpdateOperation"
 
 	return uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		currentCommandIds, err := uc.opcRepo.GetCommandIdsByOperation(txCtx, inp.ID)
-		if err != nil {
-			return fmt.Errorf("%s - uc.opcRepo.GetCommandIdsByOperation: %w", op, err)
-		}
-
-		currentCommandsMap := make(map[int64]struct{}, len(currentCommandIds))
-		for _, id := range currentCommandIds {
-			currentCommandsMap[id] = struct{}{}
-		}
-
-		systemNames := make([]string, 0, len(inp.Commands))
-		for _, c := range inp.Commands {
-			systemNames = append(systemNames, c.SystemName)
-		}
-
-		commands, err := uc.cRepo.GetBySystemNames(txCtx, systemNames)
+		mapCommands, err := uc.cRepo.GetBySystemNames(txCtx)
 		if err != nil {
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
-
 		var (
-			newCommandIds   []int64
-			updatedCommands []*entity.Command
-			totalTime       int64
+			operationCommands []*entity.OperationCommand
+			mapContainer      = make(map[entity.Address]entity.Container)
+			totalTime         int64
+			newCommandIds     []int64
 		)
 
 		for _, commandInput := range inp.Commands {
-			cmd, ok := commands[commandInput.SystemName]
+			command, ok := mapCommands[commandInput.SystemName]
 			if !ok {
 				return entity.ErrCommandNotFound
 			}
 
-			newCommand := cmd
-			newCommand.DefaultAddress = commandInput.Address
-			totalTime += newCommand.AverageTime
-
-			updatedCommands = append(updatedCommands, &newCommand)
-			newCommandIds = append(newCommandIds, newCommand.ID)
-
-		}
-
-		if err := entity.ValidateCommands(updatedCommands); err != nil {
-			if errors.Is(err, entity.ErrCommandDuplicateAddress) {
-				return err
-			}
-			return fmt.Errorf("%s - entity.ValidateCommands: %w", op, err)
-		}
-
-		for _, newCommand := range updatedCommands {
-			if _, exists := currentCommandsMap[newCommand.ID]; exists {
-				if err := uc.opcRepo.Update(txCtx, inp.ID, newCommand.ID, newCommand.DefaultAddress); err != nil {
-					return fmt.Errorf("%s - uc.opcRepo.Update: %w", op, err)
+			container, ok := mapContainer[commandInput.Address]
+			if !ok {
+				container = entity.Container{
+					Address:     commandInput.Address,
+					ReagentType: command.Reagent,
+					Volume:      command.VolumeContainer,
 				}
+			} else if container.ReagentType != command.Reagent {
+				return entity.ErrCommandNotFound
 			} else {
-				if err := uc.opcRepo.Create(txCtx, inp.ID, newCommand.ID, newCommand.DefaultAddress); err != nil {
-					return fmt.Errorf("%s - uc.opcRepo.Create: %w", op, err)
-				}
+				container.Volume += command.VolumeContainer
 			}
+
+			if !container.IsValidVolume() {
+				return entity.ErrCommandVolumeExceeded
+			}
+			mapContainer[commandInput.Address] = container
+
+			operationCommand := &entity.OperationCommand{
+				Command: command,
+				Address: commandInput.Address,
+			}
+
+			operationCommands = append(operationCommands, operationCommand)
+			totalTime += command.AverageTime
+			newCommandIds = append(newCommandIds, command.ID)
 		}
 
-		if err := uc.opcRepo.DeleteIfNotInOperationIds(txCtx, inp.ID, newCommandIds); err != nil {
-			return fmt.Errorf("%s - uc.opcRepo.DeleteIfNotInOperationIds: %w", op, err)
+		if err := uc.opcRepo.DeleteByOperationId(txCtx, inp.ID); err != nil {
+			return fmt.Errorf("%s - uc.opcRepo.DeleteByOperationId: %w", op, err)
+		}
+
+		if err := uc.opcRepo.Create(txCtx, inp.ID, operationCommands); err != nil {
+			return fmt.Errorf("%s - uc.opcRepo.Create: %w", op, err)
 		}
 
 		operation := &entity.Operation{

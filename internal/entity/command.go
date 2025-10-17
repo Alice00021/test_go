@@ -1,6 +1,9 @@
 package entity
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"slices"
+)
 
 type ReagentType string
 
@@ -31,6 +34,11 @@ const (
 	AddressSH Address = "SH"
 )
 
+type Container struct {
+	Address     Address
+	ReagentType ReagentType
+	Volume      int64
+}
 type Command struct {
 	Entity
 	Name             string
@@ -90,35 +98,15 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func ValidateCommands(commands []*Command) error {
-	addressMap := make(map[Address]ReagentType)
-	addressVolumeMap := make(map[Address]int64)
+func (t Container) IsValidVolume() bool {
+	one := []Address{AddressSA, AddressSB, AddressSC, AddressSD, AddressSE, AddressSF, AddressSG, AddressSH}
+	two := []Address{AddressRA, AddressRB, AddressRC, AddressRD}
 
-	for _, cmd := range commands {
-		if cmd.DefaultAddress == "" {
-			continue
-		}
-
-		if existingReagentType, exists := addressMap[cmd.DefaultAddress]; exists {
-			if existingReagentType != cmd.Reagent {
-				return ErrCommandDuplicateAddress
-			}
-		}
-		addressMap[cmd.DefaultAddress] = cmd.Reagent
-		addressVolumeMap[cmd.DefaultAddress] += cmd.VolumeContainer
+	if slices.Contains(one, t.Address) && t.Volume > 200 {
+		return false
 	}
-	for address, totalVolume := range addressVolumeMap {
-		if address == AddressSA || address == AddressSB || address == AddressSC || address == AddressSD ||
-			address == AddressSE || address == AddressSF || address == AddressSG || address == AddressSH {
-			if totalVolume > 200 {
-				return ErrCommandVolumeExceeded
-			}
-		} else if address == AddressRA || address == AddressRB || address == AddressRC || address == AddressRD {
-			if totalVolume > 5000 {
-				return ErrCommandVolumeExceeded
-			}
-		}
+	if slices.Contains(two, t.Address) && t.Volume > 5000 {
+		return false
 	}
-
-	return nil
+	return true
 }

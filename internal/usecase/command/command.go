@@ -52,14 +52,14 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 	}
 
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
-		existingCommands, err := uc.repo.GetBySystemNames(txCtx, systemNames)
+		mapCommands, err := uc.repo.GetBySystemNames(txCtx)
 		if err != nil {
 			return fmt.Errorf("%s - uc.repo.GetBySystemNames: %w", op, err)
 		}
 
 		for i := range commands {
 			cmd := &commands[i]
-			if existingCmd, exists := existingCommands[cmd.SystemName]; exists {
+			if existingCmd, exists := mapCommands[cmd.SystemName]; exists {
 				cmd.ID = existingCmd.ID
 				if err := uc.repo.Update(txCtx, cmd); err != nil {
 					return fmt.Errorf("%s - uc.repo.Update: %w", op, err)
