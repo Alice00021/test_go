@@ -23,7 +23,7 @@ func (r *OperationCommandsRepo) Create(ctx context.Context, operationId int64, c
 		Columns("operation_id", "command_id", "address")
 
 	for _, command := range commands {
-		builder = builder.Values(operationId, command.ID, command.Address)
+		builder = builder.Values(operationId, command.Command.ID, command.Address)
 	}
 
 	sql, args, err := builder.ToSql()
@@ -41,13 +41,13 @@ func (r *OperationCommandsRepo) Create(ctx context.Context, operationId int64, c
 	return nil
 }
 
-func (r *OperationCommandsRepo) Update(ctx context.Context, id int64, address entity.Address) error {
+func (r *OperationCommandsRepo) Update(ctx context.Context, e *entity.OperationCommand) error {
 	op := "OperationCommandsRepo - Update"
 
 	sqlBuilder := r.Builder.
 		Update("operation_commands").
-		Set("address", address).
-		Where(squirrel.Eq{"id": id})
+		Set("address", e.Address).
+		Where(squirrel.Eq{"id": e.ID})
 
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -55,41 +55,12 @@ func (r *OperationCommandsRepo) Update(ctx context.Context, id int64, address en
 	}
 
 	client := r.GetClient(ctx)
-	if _, err = client.Exec(ctx, sql, args...); err != nil {
+	_, err = client.Exec(ctx, sql, args...)
+	if err != nil {
 		return fmt.Errorf("%s - client.Exec: %w", op, err)
 	}
 
 	return nil
-}
-
-func (r *OperationCommandsRepo) GetIdsByOperation(ctx context.Context, operationID int64) ([]int64, error) {
-	op := "OperationCommandsRepo - GetCommandIdsByOperation"
-
-	sql, args, err := r.Builder.
-		Select("id").
-		From("operation_commands").
-		Where(squirrel.Eq{"operation_id": operationID}).
-		ToSql()
-
-	if err != nil {
-		return nil, fmt.Errorf("%s - r.Builder: %w", op, err)
-	}
-	client := r.GetClient(ctx)
-	rows, err := client.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, fmt.Errorf("%s - client.Query: %w", op, err)
-	}
-	defer rows.Close()
-
-	var ids []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("%s - rows.Scan: %w", op, err)
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
 }
 
 func (r *OperationCommandsRepo) DeleteByOperationId(ctx context.Context, operationId int64) error {
@@ -116,15 +87,15 @@ func (r *OperationCommandsRepo) DeleteByOperationId(ctx context.Context, operati
 	return nil
 }
 
-func (r *OperationCommandsRepo) DeleteIfNotInOperationIds(ctx context.Context, operationID int64, commandIds []int64) error {
+func (r *OperationCommandsRepo) DeleteIfNotInOperationCommandIds(ctx context.Context, operationID int64, idsToKeep []int64) error {
 	op := "OperationCommandsRepo - DeleteIfNotInAccountIds"
 
 	builder := r.Builder.
 		Delete("operation_commands").
 		Where(squirrel.Eq{"operation_id": operationID})
 
-	if len(commandIds) > 0 {
-		builder = builder.Where(squirrel.NotEq{"command_id": commandIds})
+	if len(idsToKeep) > 0 {
+		builder = builder.Where(squirrel.NotEq{"id": idsToKeep})
 	}
 
 	sql, args, err := builder.ToSql()

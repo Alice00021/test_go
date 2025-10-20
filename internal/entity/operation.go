@@ -1,6 +1,8 @@
 package entity
 
 type OperationCommand struct {
+	ID          int64
+	OperationID int64
 	Command
 	Address Address
 }
@@ -21,7 +23,7 @@ type UpdateOperationInput struct {
 }
 
 type CommandInput struct {
-	ID         int64
+	ID         *int64
 	SystemName string
 	Address    Address
 }

@@ -115,15 +115,13 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 			return fmt.Errorf("%s - uc.cRepo.GetBySystemNames: %w", op, err)
 		}
 
-		//ids, err := uc.opcRepo.GetIdsByOperation(txCtx, inp.ID)
-		//if err != nil {
-		//	return fmt.Errorf("%s - uc.opcRepo.GetIdsByOperation: %w", op, err)
-		//}
-
 		var (
 			operationCommands []*entity.OperationCommand
 			mapContainer      = make(map[entity.Address]entity.Container)
 			totalTime         int64
+			commandsToCreate  []*entity.OperationCommand
+			commandsToUpdate  []*entity.OperationCommand
+			idsToKeep         []int64
 		)
 
 		for _, commandInput := range inp.Commands {
@@ -151,12 +149,39 @@ func (uc *UseCase) UpdateOperation(ctx context.Context, inp entity.UpdateOperati
 			mapContainer[commandInput.Address] = container
 
 			operationCommand := &entity.OperationCommand{
-				Command: command,
-				Address: commandInput.Address,
+				ID:          0,
+				OperationID: inp.ID,
+				Command:     command,
+				Address:     commandInput.Address,
 			}
 
 			operationCommands = append(operationCommands, operationCommand)
 			totalTime += command.AverageTime
+
+			// Если команда уже существует — обновляем
+			if commandInput.ID != nil {
+				operationCommand.ID = *commandInput.ID
+				commandsToUpdate = append(commandsToUpdate, operationCommand)
+				idsToKeep = append(idsToKeep, *commandInput.ID)
+			} else {
+				commandsToCreate = append(commandsToCreate, operationCommand)
+			}
+		}
+
+		for _, command := range commandsToUpdate {
+			if err := uc.opcRepo.Update(txCtx, command); err != nil {
+				return fmt.Errorf("%s - uc.opcRepo.Update: %w", op, err)
+			}
+		}
+
+		if len(commandsToCreate) > 0 {
+			if err := uc.opcRepo.Create(txCtx, inp.ID, commandsToCreate); err != nil {
+				return fmt.Errorf("%s - uc.opcRepo.Create: %w", op, err)
+			}
+		}
+
+		if err := uc.opcRepo.DeleteIfNotInOperationCommandIds(txCtx, inp.ID, idsToKeep); err != nil {
+			return fmt.Errorf("%s - uc.opcRepo.DeleteExceptIDs: %w", op, err)
 		}
 
 		operation := &entity.Operation{

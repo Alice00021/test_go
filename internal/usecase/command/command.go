@@ -46,11 +46,6 @@ func (uc *useCase) UpdateCommands(ctx context.Context) error {
 		return fmt.Errorf("%s - json.Decode: %w", op, err)
 	}
 
-	systemNames := make([]string, len(commands))
-	for i := range commands {
-		systemNames[i] = commands[i].SystemName
-	}
-
 	if err := uc.RunInTransaction(ctx, func(txCtx context.Context) error {
 		mapCommands, err := uc.repo.GetBySystemNames(txCtx)
 		if err != nil {

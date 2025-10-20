@@ -48,9 +48,8 @@ type (
 
 	OperationCommandsRepo interface {
 		Create(context.Context, int64, []*entity.OperationCommand) error
-		GetIdsByOperation(context.Context, int64) ([]int64, error)
-		Update(context.Context, int64, entity.Address) error
+		Update(context.Context, *entity.OperationCommand) error
 		DeleteByOperationId(context.Context, int64) error
-		DeleteIfNotInOperationIds(context.Context, int64, []int64) error
+		DeleteIfNotInOperationCommandIds(context.Context, int64, []int64) error
 	}
 )
