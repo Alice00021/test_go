@@ -4,3 +4,6 @@
 [submodule "test_backend"]
 	path = test_backend
 	url = git@github.com:Alice00021/test_backend.git
+[submodule "test_api"]
+	path = test_api
+	url = git@github.com:Alice00021/test-api.git
