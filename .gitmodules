@@ -7,3 +7,6 @@
 [submodule "test_api"]
 	path = test_api
 	url = git@github.com:Alice00021/test-api.git
+[submodule "test_common"]
+	path = test_common
+	url = git@github.com:Alice00021/test_common.git
